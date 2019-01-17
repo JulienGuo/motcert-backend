@@ -1,19 +1,22 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"strconv"
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 	"math/big"
-	//"os"
-	"encoding/hex"
+	"strconv"
 )
+
+type CertificateReq struct {
+	Id string `protobuf:"bytes,1,opt,name=id" json:"id"`
+}
 
 // SimpleChaincode example simple Chaincode implementation
 type SimpleChaincode struct {
 }
-
 
 //instantiate chaincode
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
@@ -29,73 +32,53 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	return shim.Success(nil)
 }
 
-
 // invoke chaincode
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
-	fmt.Println("####################开始执行事务操作##################")
-	fmt.Println("--开始获取函数名以及参数----")
 
+	fmt.Println("###########  Invoke ###########")
 	function, args := stub.GetFunctionAndParameters()
-	fmt.Println("---获取函数名以及参数成功-----")
-
 	// Get the function and arguments from the request
 	if function != "invoke" {
 		return shim.Error("Unknown function call")
 	}
-
-	fmt.Println("######################开始执行invoke事务########################")
-	fmt.Println("##############function名称#######",function)
-	fmt.Println("#############执行事务的名称#########",args)
 
 	// Check whether the number of arguments is sufficient
 	if len(args) < 1 {
 		return shim.Error("The number of arguments is insufficient.")
 	}
 
-	//register KeyPair operation
-	if args[0] == "registerKeyPair" {
-		fmt.Println("######################准备注册密钥对#####################")
-		return t.registerKeyPair(stub,args)
-	}
-
-	//init operation
-	if args[0] == "initParam" {
-		fmt.Println("#################准备参数实例化#####################")
-		return t.initParam(stub,args)
-	}
-
-	// In order to manage multiple type of request, we will check the first argument.
-	// Here we have one possible argument: query (every query request will read in the ledger without modification)
-	if args[0] == "query" {
-		fmt.Println("###################准备进行查询###################")
+	switch args[0] {
+	case "registerKeyPair":
+		return t.registerKeyPair(stub, args)
+	case "initParam":
+		return t.initParam(stub, args)
+	case "query":
 		return t.query(stub, args)
-	}
-
-	// The update argument will manage all update in the ledger
-	if args[0] == "transfer" {
-		fmt.Println("###################准备进行转账操作##################")
+	case "transfer":
 		return t.transfer(stub, args)
+	case "postCertificate":
+		return t.postCertificate(stub, args)
+	case "getCertificate":
+		return t.getCertificate(stub, args)
+	default:
+		return shim.Error("Unknown function: " + function)
 	}
-
-	// If the arguments given don’t match any function, we return an error
-	return shim.Error("Unknown action, check the first argument")
 }
 
 //注册密钥对信息，将公钥对信息注册到链上  4个参数
-func (t *SimpleChaincode)registerKeyPair(stub shim.ChaincodeStubInterface,args []string)pb.Response{
+func (t *SimpleChaincode) registerKeyPair(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Println("########################开始注册密钥对######################")
 
-
-	var pubByteKeyStr , pubByteValueStr string
+	var pubByteKeyStr, pubByteValueStr string
 
 	pubByteKeyStr = args[1]
 	pubByteValueStr = args[2]
 
 	//将公钥信息转码
-	pubByteValue ,_ := hex.DecodeString(pubByteValueStr)
+	pubByteValue, _ := hex.DecodeString(pubByteValueStr)
 
 	//将公钥信息注册链上
-	err := stub.PutState(pubByteKeyStr,pubByteValue)
+	err := stub.PutState(pubByteKeyStr, pubByteValue)
 	if err != nil {
 		shim.Error(err.Error())
 	}
@@ -123,7 +106,7 @@ func (t *SimpleChaincode)registerKeyPair(stub shim.ChaincodeStubInterface,args [
 }
 
 //init 进行参数实例化操作,在sdk层对数据进行加密操作写入链上
-func (t *SimpleChaincode)initParam(stub shim.ChaincodeStubInterface,args []string)pb.Response{
+func (t *SimpleChaincode) initParam(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 
 	fmt.Println("#############开始参数实例化###############")
 
@@ -139,29 +122,29 @@ func (t *SimpleChaincode)initParam(stub shim.ChaincodeStubInterface,args []strin
 	//	return shim.Error("Incorrect number of arguments. Expecting 4")
 	//}
 
-	var A , B string
-	var ciperAvalStr , ciperBvalStr string
+	var A, B string
+	var ciperAvalStr, ciperBvalStr string
 	A = args[1]
 	ciperAvalStr = args[2]
 
-	ciperAval , err := hex.DecodeString(ciperAvalStr)
+	ciperAval, err := hex.DecodeString(ciperAvalStr)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
 	B = args[3]
 	ciperBvalStr = args[4]
-	ciperBval ,err := hex.DecodeString(ciperBvalStr)
+	ciperBval, err := hex.DecodeString(ciperBvalStr)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	err = stub.PutState(A,ciperAval)
+	err = stub.PutState(A, ciperAval)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
-	err = stub.PutState(B,ciperBval)
+	err = stub.PutState(B, ciperBval)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -175,12 +158,10 @@ func (t *SimpleChaincode)initParam(stub shim.ChaincodeStubInterface,args []strin
 
 }
 
-
 // query callback representing the query of a chaincode
 func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	var A string // Entities
 	var err error
-
 
 	//获取用户名
 	A = args[1]
@@ -191,8 +172,6 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 	//fmt.Println("------私钥用户------",priByteKeyStr)
 	//
 	//priByteKey ,_ := stub.GetState(priByteKeyStr)
-
-
 
 	// Get the state from the ledger
 	ciperAvalbytes, err := stub.GetState(A)
@@ -209,7 +188,7 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 	jsonResp := "{\"Name\":\"" + A + "\",\"Amount\":\"" + new(big.Int).SetBytes(ciperAvalbytes).String() + "\"}"
 
 	fmt.Printf("Query Response:%s\n", jsonResp)
-	fmt.Println("-----查询后的加密结果-------",new(big.Int).SetBytes(ciperAvalbytes).String())
+	fmt.Println("-----查询后的加密结果-------", new(big.Int).SetBytes(ciperAvalbytes).String())
 
 	//进行测试  通过私钥解密数据
 	//plainAval ,_ := stub.Decrypt(priByteKey,ciperAvalbytes)
@@ -222,16 +201,14 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 
 }
 
-
 // 将转账金额传入，并且随机数传入r1,r2   chaincode端进行接受 A , B , X , r1 ,r2 ,pubByteAKey ,pubByteBKey
 func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 
-	var A, B string    // Entities
-	var X int64          // Transaction value
-	var r1 , r2 int64    //random number
+	var A, B string  // Entities
+	var X int64      // Transaction value
+	var r1, r2 int64 //random number
 	//var pubByteAStr ,pubByteBStr string
 	var err error
-
 
 	A = args[1]
 	B = args[2]
@@ -247,7 +224,6 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 	if ciperAvalbytes == nil {
 		return shim.Error("Entity not found")
 	}
-
 
 	ciperBvalbytes, err := stub.GetState(B)
 	if err != nil {
@@ -265,14 +241,13 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 	X = int64(intX)
 	plianX := new(big.Int).SetInt64(X)
 
-
 	r1Str := args[4]
 	r2Str := args[5]
-	r1Int , err:= strconv.Atoi(r1Str)
+	r1Int, err := strconv.Atoi(r1Str)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
-	r2Int , err :=strconv.Atoi(r2Str)
+	r2Int, err := strconv.Atoi(r2Str)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
@@ -283,41 +258,37 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 	r1B := new(big.Int).SetInt64(r1)
 	r2B := new(big.Int).SetInt64(r2)
 
-
-
 	pubByteAKey := args[6]
-	pubByteA ,err := stub.GetState(pubByteAKey)
+	pubByteA, err := stub.GetState(pubByteAKey)
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
 	pubByteBKey := args[7]
-	pubByteB ,err := stub.GetState(pubByteBKey)
+	pubByteB, err := stub.GetState(pubByteBKey)
 
 	if err != nil {
 		return shim.Error(err.Error())
 	}
 
 	//同态加密随机值数据处理
-	ciperX1 , _ := stub.Encrypt(pubByteA,plianX.Bytes(),r1B)
-	fmt.Printf("ciperX1 = %s",new(big.Int).SetBytes(ciperX1).String())
+	ciperX1, _ := stub.Encrypt(pubByteA, plianX.Bytes(), r1B)
+	fmt.Printf("ciperX1 = %s", new(big.Int).SetBytes(ciperX1).String())
 
-	ciperX2 ,_ := stub.Encrypt(pubByteB,plianX.Bytes(),r2B)
-	fmt.Printf("ciperX2 = %s" ,  new(big.Int).SetBytes(ciperX2).String())
+	ciperX2, _ := stub.Encrypt(pubByteB, plianX.Bytes(), r2B)
+	fmt.Printf("ciperX2 = %s", new(big.Int).SetBytes(ciperX2).String())
 
-	fmt.Printf("ciperAvalbytes = %s ,ciperBvalbytes = %s",new(big.Int).SetBytes(ciperAvalbytes).String(),new(big.Int).SetBytes(ciperBvalbytes).String())
+	fmt.Printf("ciperAvalbytes = %s ,ciperBvalbytes = %s", new(big.Int).SetBytes(ciperAvalbytes).String(), new(big.Int).SetBytes(ciperBvalbytes).String())
 
 	//Aval = Aval - X
 	//Bval = Bval + X
 
 	fmt.Printf("----------------start transfer-------------------------------")
 
-
 	//A-X
-	ciperAvalbytes ,_ = stub.SubCipher(pubByteA,ciperAvalbytes,ciperX1)
+	ciperAvalbytes, _ = stub.SubCipher(pubByteA, ciperAvalbytes, ciperX1)
 	//// B+X
-	ciperBvalbytes ,_ = stub.AddCipher(pubByteB,ciperBvalbytes,ciperX2)
-
+	ciperBvalbytes, _ = stub.AddCipher(pubByteB, ciperBvalbytes, ciperX2)
 
 	// Write the state back to the ledger
 	//将加密数据存储到账本当中
@@ -336,11 +307,69 @@ func (t *SimpleChaincode) transfer(stub shim.ChaincodeStubInterface, args []stri
 		return shim.Error(err.Error())
 	}
 
-
 	return shim.Success([]byte("invoke transfer success"))
 }
 
+func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Printf("postCertificate=%v\n", args)
 
+	if len(args) != 2 {
+		return shim.Error("Incorrect number of arguments.")
+	}
+
+	// TODO: check duplication
+	//txID := stub.GetTxID()
+
+	body := []byte(args[1])
+	var certificateReq CertificateReq
+	err := json.Unmarshal(body, &certificateReq)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	fmt.Printf("postCertificate: '%v'\n", certificateReq)
+
+	attributes := []string{certificateReq.Id}
+	key, err := stub.CreateCompositeKey("certificate", attributes)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	certificateReqByte, err := json.Marshal(certificateReq)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	err = stub.PutState(key, certificateReqByte)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.SetEvent("postCertificateEvent", []byte{})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	return shim.Success(nil)
+}
+
+func (t *SimpleChaincode) getCertificate(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Printf("getCertificate=%v\n", args)
+
+	if len(args) != 2 {
+		return shim.Error("Incorrect number of arguments.")
+	}
+
+	key, err := stub.CreateCompositeKey("certificate", []string{args[1]})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	value, err := stub.GetState(key)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success(value)
+}
 
 func main() {
 	err := shim.Start(new(SimpleChaincode))
@@ -348,5 +377,3 @@ func main() {
 		fmt.Printf("Error starting Simple chaincode: %s", err)
 	}
 }
-
-

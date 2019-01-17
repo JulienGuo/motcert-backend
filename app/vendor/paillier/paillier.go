@@ -143,8 +143,6 @@ func Decrypt(privKeyBytes []byte, cipherText []byte) ([]byte, error) {
 	return m.Bytes(), nil
 }
 
-
-
 func MarshalPrivateKey(key *PrivateKey) []byte {
 
 	spec := specPrivateKey{
@@ -161,7 +159,7 @@ func MarshalPrivateKey(key *PrivateKey) []byte {
 	return b
 }
 
- //MarshalPublicKey serialises a public key to DER-encoded  format.
+//MarshalPublicKey serialises a public key to DER-encoded  format.
 func MarshalPublicKey(pub *PublicKey) []byte {
 
 	spec := specPublicKey{

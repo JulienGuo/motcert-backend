@@ -1,7 +1,6 @@
-package blockchain
+package fabricClient
 
 import (
-	"fmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/channel"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/event"
 	mspclient "github.com/hyperledger/fabric-sdk-go/pkg/client/msp"
@@ -12,8 +11,11 @@ import (
 	packager "github.com/hyperledger/fabric-sdk-go/pkg/fab/ccpackager/gopackager"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
 	"github.com/hyperledger/fabric-sdk-go/third_party/github.com/hyperledger/fabric/common/cauthdsl"
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
+
+var logger = logging.MustGetLogger("Motcert.FabricClient")
 
 // FabricSetup implementation
 type FabricSetup struct {
@@ -49,7 +51,7 @@ func (setup *FabricSetup) Initialize() error {
 		return errors.WithMessage(err, "failed to create SDK")
 	}
 	setup.sdk = sdk
-	fmt.Println("SDK created")
+	logger.Info("SDK created")
 
 	// The resource management client is responsible for managing channels (create/update channel)
 	resourceManagerClientContext := setup.sdk.Context(fabsdk.WithUser(setup.OrgAdmin), fabsdk.WithOrg(setup.OrgName))
@@ -61,7 +63,7 @@ func (setup *FabricSetup) Initialize() error {
 		return errors.WithMessage(err, "failed to create channel management client from Admin identity")
 	}
 	setup.admin = resMgmtClient
-	fmt.Println("Ressource management client created")
+	logger.Info("Ressource management client created")
 
 	// The MSP client allow us to retrieve user information from their identity, like its signing identity which we will need to save the channel
 	mspClient, err := mspclient.New(sdk.Context(), mspclient.WithOrg(setup.OrgName))
@@ -77,15 +79,15 @@ func (setup *FabricSetup) Initialize() error {
 	if err != nil || txID.TransactionID == "" {
 		return errors.WithMessage(err, "failed to save channel")
 	}
-	fmt.Println("Channel created")
+	logger.Info("Channel created")
 
 	// Make admin user join the previously created channel
 	if err = setup.admin.JoinChannel(setup.ChannelID, resmgmt.WithRetry(retry.DefaultResMgmtOpts), resmgmt.WithOrdererEndpoint(setup.OrdererID)); err != nil {
 		return errors.WithMessage(err, "failed to make admin join channel")
 	}
-	fmt.Println("Channel joined")
+	logger.Info("Channel joined")
 
-	fmt.Println("Initialization Successful")
+	logger.Info("Initialization Successful")
 	setup.initialized = true
 	return nil
 }
@@ -97,7 +99,7 @@ func (setup *FabricSetup) InstallAndInstantiateCC() error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to create chaincode package")
 	}
-	fmt.Println("ccPkg created")
+	logger.Info("ccPkg created")
 
 	// Install example cc to org peers
 	installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "0", Package: ccPkg}
@@ -105,7 +107,7 @@ func (setup *FabricSetup) InstallAndInstantiateCC() error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to install chaincode")
 	}
-	fmt.Println("Chaincode installed")
+	logger.Info("Chaincode installed")
 
 	// Set up chaincode policy
 	ccPolicy := cauthdsl.SignedByAnyMember([]string{"org1.cert.mot.gov.cn"})
@@ -114,7 +116,7 @@ func (setup *FabricSetup) InstallAndInstantiateCC() error {
 	if err != nil || resp.TransactionID == "" {
 		return errors.WithMessage(err, "failed to instantiate the chaincode")
 	}
-	fmt.Println("Chaincode instantiated")
+	logger.Info("Chaincode instantiated")
 
 	// Channel client is used to query and execute transactions
 	clientContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName))
@@ -122,16 +124,16 @@ func (setup *FabricSetup) InstallAndInstantiateCC() error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to create new channel client")
 	}
-	fmt.Println("Channel client created")
+	logger.Info("Channel client created")
 
 	// Creation of the client which will enables access to our channel events
 	setup.event, err = event.New(clientContext)
 	if err != nil {
 		return errors.WithMessage(err, "failed to create new event client")
 	}
-	fmt.Println("Event client created")
+	logger.Info("Event client created")
 
-	fmt.Println("Chaincode Installation & Instantiation Successful")
+	logger.Info("Chaincode Installation & Instantiation Successful")
 	return nil
 }
 

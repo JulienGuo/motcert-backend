@@ -25,12 +25,12 @@ env-down:
 ##### RUN
 run:
 	@echo "Start app ..."
-	@./main
+	@./app
 
 ##### CLEAN
 clean: env-down
 	@echo "Clean up ..."
-	@rm -rf /tmp/motcert-* ./app/main
+	@rm -rf /tmp/motcert-* ./app/app
 	@docker rm -f -v `docker ps -a --no-trunc | grep "motcert" | cut -d ' ' -f 1` 2>/dev/null || true
 	@docker rmi `docker images --no-trunc | grep "motcert" | cut -d ' ' -f 1` 2>/dev/null || true
 	@echo "Clean up done"

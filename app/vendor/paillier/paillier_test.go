@@ -1,14 +1,14 @@
 package paillier
 
 import (
-	"testing"
-	"fmt"
 	"crypto/rand"
-	"encoding/pem"
-	"os"
-	"io/ioutil"
 	"encoding/asn1"
+	"encoding/pem"
+	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
+	"testing"
 )
 
 func TestVerify(t *testing.T) {

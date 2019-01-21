@@ -1,0 +1,366 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Motcert Web Server",
+    "contact": {
+      "email": "guolidong@chainnova.com"
+    }
+  },
+  "host": "23.91.102.163",
+  "basePath": "/v1",
+  "tags": [
+    {
+      "name": "motcert"
+    }
+  ],
+  "schemes": [
+    "https",
+    "http"
+  ],
+  "paths": {
+    "/certificate": {
+      "post": {
+        "tags": [
+          "certificate"
+        ],
+        "summary": "Add a new certificate to the block chain",
+        "description": "",
+        "consumes": [
+          "application/json",
+          "application/xml"
+        ],
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Certificate object that needs to be added to the block chain",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Certificate"
+            }
+          }
+        ],
+        "responses": {
+          "405": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/certificate/{certId}{exportId}": {
+      "get": {
+        "tags": [
+          "certificate"
+        ],
+        "summary": "Finds Certificates by status",
+        "description": "Multiple status values can be provided with comma separated strings",
+        "operationId": "getCertificate",
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "certId",
+            "in": "path",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "exportId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Certificate"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status value"
+          }
+        }
+      }
+    },
+    "/user/login": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Logs user into the system",
+        "description": "",
+        "operationId": "loginUser",
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "description": "The user name for login",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "password",
+            "in": "query",
+            "description": "The password for login in clear text",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "string"
+            },
+            "headers": {
+              "X-Rate-Limit": {
+                "type": "integer",
+                "format": "int32",
+                "description": "calls per hour allowed by the user"
+              },
+              "X-Expires-After": {
+                "type": "string",
+                "format": "date-time",
+                "description": "date in UTC when token expires"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username/password supplied"
+          }
+        }
+      }
+    },
+    "/user/logout": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Logs out current logged in user session",
+        "description": "",
+        "operationId": "logoutUser",
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [],
+        "responses": {
+          "default": {
+            "description": "successful operation"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Certificate": {
+      "type": "object",
+      "properties": {
+        "certId": {
+          "type": "string",
+          "description": "证书编号"
+        },
+        "entrustOrg": {
+          "type": "string",
+          "description": "委托单位"
+        },
+        "instrumentName": {
+          "type": "string",
+          "description": "器具名称"
+        },
+        "spec": {
+          "type": "string",
+          "description": "型号/规格"
+        },
+        "exportId": {
+          "type": "string",
+          "description": "出厂编号"
+        },
+        "madeByOrg": {
+          "type": "string",
+          "description": "制造单位"
+        },
+        "entrustOrgAdd": {
+          "type": "string",
+          "description": "委托单位地址"
+        },
+        "approver": {
+          "type": "string",
+          "description": "批准人"
+        },
+        "verifier": {
+          "type": "string",
+          "description": "核验员"
+        },
+        "calibratePerson": {
+          "type": "string",
+          "description": "校准员"
+        },
+        "calibrateDate": {
+          "type": "string",
+          "description": "校准日期",
+          "format": "string-date"
+        },
+        "suggestNextCaliDate": {
+          "type": "string",
+          "description": "建议下次校准日期",
+          "format": "string-date"
+        },
+        "metrVeriOrgAuthId": {
+          "type": "string",
+          "description": "计量检定机构授权证书号"
+        },
+        "phoneNum": {
+          "type": "string",
+          "description": "电话"
+        },
+        "address": {
+          "type": "string",
+          "description": "地址"
+        },
+        "postcode": {
+          "type": "string",
+          "description": "邮政编码"
+        },
+        "faxNO": {
+          "type": "string",
+          "description": "传真"
+        },
+        "emailAddr": {
+          "type": "string",
+          "description": "电子邮件"
+        },
+        "calibration": {
+          "$ref": "#/definitions/Calibration"
+        }
+      },
+      "xml": {
+        "name": "Certificate"
+      }
+    },
+    "Calibration": {
+      "type": "object",
+      "properties": {
+        "authorizer": {
+          "type": "string",
+          "description": "授权单位"
+        },
+        "accordingFile": {
+          "type": "string",
+          "description": "校准所依据的技术文件（代号、名称）"
+        },
+        "calibTemp": {
+          "type": "string",
+          "description": "校准温度"
+        },
+        "calibPosition": {
+          "type": "string",
+          "description": "校准地点"
+        },
+        "calibHumidity": {
+          "type": "string",
+          "description": "校准湿度"
+        },
+        "calibOtherCond": {
+          "type": "string",
+          "description": "校准其他条件"
+        },
+        "calibInstruName": {
+          "type": "string",
+          "description": "校准使用的主要计量器具名称"
+        },
+        "calibInstruRange": {
+          "type": "string",
+          "description": "校准使用的主要计量器具测量范围"
+        },
+        "calibInstruMarginOfError": {
+          "type": "string",
+          "description": "校准使用的主要计量器具误差"
+        },
+        "calibInstruCertId": {
+          "type": "string",
+          "description": "校准使用的主要计量器具证书编号"
+        },
+        "calibInstruExpiryDate": {
+          "type": "string",
+          "description": "校准使用的主要计量器具证书有效期"
+        },
+        "appearance": {
+          "type": "string",
+          "description": "校准结果外观"
+        },
+        "connectMass": {
+          "type": "string",
+          "description": "校准结果摆及摆的连接部分总质量"
+        },
+        "toCentreOfGravity": {
+          "type": "string",
+          "description": "校准结果摆动轴心距摆的重心距离"
+        },
+        "toAxis": {
+          "type": "string",
+          "description": "校准结果摆上滑块下端部距摆动轴心距离"
+        },
+        "deflection": {
+          "type": "string",
+          "description": "校准结果正向静压力对应的变形量"
+        },
+        "skidMass": {
+          "type": "string",
+          "description": "校准结果滑溜块总质量"
+        },
+        "skidRubberLength": {
+          "type": "string",
+          "description": "校准结果滑溜块橡胶片长度"
+        },
+        "skidRubberWidth": {
+          "type": "string",
+          "description": "校准结果滑溜块橡胶片宽度"
+        },
+        "skidRubberThickness": {
+          "type": "string",
+          "description": "校准结果滑溜块橡胶片厚度"
+        },
+        "skidRubberHardness": {
+          "type": "string",
+          "description": "校准结果滑溜块橡胶片邵氏硬度"
+        },
+        "bpnStDeviation": {
+          "type": "string",
+          "description": "摆值重复性，标准差，BPN"
+        },
+        "bpnComStDeviation": {
+          "type": "string",
+          "description": "整机准确性，摆值差值，BPN"
+        },
+        "comCalibUncertainty": {
+          "type": "string",
+          "description": "整机准确性校准结果不确定度描述"
+        }
+      },
+      "xml": {
+        "name": "Calibration"
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "Find out more about Swagger",
+    "url": "http://swagger.io"
+  }
+}

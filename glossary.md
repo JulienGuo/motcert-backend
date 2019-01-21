@@ -18,7 +18,7 @@
 电子邮件：emailAddr   
 校准所依据的技术文件（代号、名称）：accordingFile   
 校准温度：calibTemp   
-校准地点：calibAddr   
+校准地点：calibPosition   
 校准湿度：calibHumidity   
 校准其他条件：calibOtherCond   
 校准使用的主要计量器具名称：calibInstruName   

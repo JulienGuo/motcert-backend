@@ -27,7 +27,7 @@
 校准使用的主要计量器具证书编号：calibInstruCertId   
 校准使用的主要计量器具证书有效期：calibInstruExpiryDate   
 校准结果外观：appearance   
-校准结果摆与摆的连接部分总质量：connectMass   
+校准结果摆及摆的连接部分总质量：connectMass   
 校准结果摆动轴心距摆的重心距离：toCentreOfGravity   
 校准结果摆上滑块下端部距摆动轴心距离：toAxis   
 校准结果正向静压力对应的变形量：deflection   

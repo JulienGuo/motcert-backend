@@ -152,10 +152,10 @@
         }
       }
     },
-    "/user/login": {
+    "/login": {
       "post": {
         "tags": [
-          "user"
+          "login"
         ],
         "summary": "Logs user into the system",
         "description": "",
@@ -205,10 +205,10 @@
         }
       }
     },
-    "/user/logout": {
+    "/logout": {
       "post": {
         "tags": [
-          "user"
+          "logout"
         ],
         "summary": "Logs out current logged in user session",
         "description": "",

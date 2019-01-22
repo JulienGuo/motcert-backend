@@ -10,13 +10,14 @@ import (
 	"github.com/gocraft/web"
 	"github.com/spf13/viper"
 	"gitlab.chainnova.com/motcert-backend/app/business"
+	"gitlab.chainnova.com/motcert-backend/app/session"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
 type Result struct {
-	ResultCode string `protobuf:"bytes,1,opt,name=resultCode" json:"resultCode"`
+	ResultCode int    `protobuf:"bytes,1,opt,name=resultCode" json:"resultCode"`
 	ErrorDesc  string `protobuf:"bytes,2,opt,name=errorDesc" json:"errorDesc"`
 }
 
@@ -60,8 +61,10 @@ func buildRouter() *web.Router {
 	router.Middleware((*motCertAPP).basicAuthenticate)
 
 	app := router.Subrouter(motCertAPP{}, "/v1/")
+	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
 	app.Get("certificate/:id", (*motCertAPP).getCertificate)
+	app.Post("logout", (*motCertAPP).postLogout)
 
 	return router
 }
@@ -125,13 +128,68 @@ func (s *motCertAPP) basicAuthenticate(rw web.ResponseWriter, req *web.Request, 
 	next(rw, req)
 }
 
+func (s *motCertAPP) postLogin(rw web.ResponseWriter, req *web.Request) {
+	sess := session.GlobalSessions.SessionStart(rw, req.Request)
+	encoder := json.NewEncoder(rw)
+	var result Result
+	// Decode the incoming JSON payload
+	//body, err := ioutil.ReadAll(req.Body)
+	//if err != nil {
+	//	result.ResultCode = http.StatusBadRequest
+	//	result.ErrorDesc = err.Error()
+	//	rw.WriteHeader(http.StatusBadRequest)
+	//	if err := encoder.Encode(result); err != nil {
+	//		logger.Fatalf("serializing result: %v", err)
+	//	}
+	//	logger.Errorf("Error: %s  :read request error", err)
+	//	return
+	//}
+	//
+	//var certificateReq CertificateReq
+	//err = json.Unmarshal(body, &certificateReq)
+	//if err != nil {
+	//	result.ResultCode = http.StatusBadRequest
+	//	result.ErrorDesc = err.Error()
+	//	rw.WriteHeader(http.StatusBadRequest)
+	//	if err := encoder.Encode(result); err != nil {
+	//		logger.Fatalf("serializing result: %v", err)
+	//	}
+	//	logger.Errorf("Error: %s  :Unmarshal request error", err)
+	//	return
+	//}
+	//
+	//logger.Infof("postCertificate: '%s'.\n", certificateReq)
+	//
+	//args := []string{string(body)}
+	//txID, err := business.CertificateIn(FabricSetupEntity, args)
+	//if err != nil {
+	//	result.ResultCode = http.StatusNotImplemented
+	//	result.ErrorDesc = err.Error()
+	//	rw.WriteHeader(http.StatusNotImplemented)
+	//	if err := encoder.Encode(result); err != nil {
+	//		logger.Fatalf("serializing result: %v", err)
+	//	}
+	//	logger.Errorf("Error: %s", err)
+	//	return
+	//}
+
+	rw.WriteHeader(http.StatusOK)
+	result.ResultCode = http.StatusOK
+	sess.Set("username", "username")
+	result.ErrorDesc = fmt.Sprintf("%v", "login in")
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+	return
+}
+
 func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	encoder := json.NewEncoder(rw)
 	var result Result
 	// Decode the incoming JSON payload
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		result.ResultCode = "01"
+		result.ResultCode = http.StatusBadRequest
 		result.ErrorDesc = err.Error()
 		rw.WriteHeader(http.StatusBadRequest)
 		if err := encoder.Encode(result); err != nil {
@@ -144,7 +202,7 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	var certificateReq CertificateReq
 	err = json.Unmarshal(body, &certificateReq)
 	if err != nil {
-		result.ResultCode = "02"
+		result.ResultCode = http.StatusBadRequest
 		result.ErrorDesc = err.Error()
 		rw.WriteHeader(http.StatusBadRequest)
 		if err := encoder.Encode(result); err != nil {
@@ -159,9 +217,9 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	args := []string{string(body)}
 	txID, err := business.CertificateIn(FabricSetupEntity, args)
 	if err != nil {
-		result.ResultCode = "03"
+		result.ResultCode = http.StatusNotImplemented
 		result.ErrorDesc = err.Error()
-		rw.WriteHeader(http.StatusBadRequest)
+		rw.WriteHeader(http.StatusNotImplemented)
 		if err := encoder.Encode(result); err != nil {
 			logger.Fatalf("serializing result: %v", err)
 		}
@@ -169,7 +227,8 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	result.ResultCode = "00"
+	result.ResultCode = http.StatusOK
+	rw.WriteHeader(http.StatusOK)
 	result.ErrorDesc = fmt.Sprintf("%v", txID)
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
@@ -186,7 +245,7 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	args := []string{id}
 	response, err := business.CertificateOut(FabricSetupEntity, args)
 	if err != nil {
-		result.ResultCode = "01"
+		result.ResultCode = http.StatusBadRequest
 		result.ErrorDesc = err.Error()
 		rw.WriteHeader(http.StatusBadRequest)
 		if err := encoder.Encode(result); err != nil {
@@ -197,8 +256,9 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	if response == "" {
-		result.ResultCode = "02"
+		result.ResultCode = http.StatusBadRequest
 		result.ErrorDesc = "have not such data"
+		rw.WriteHeader(http.StatusBadRequest)
 		if err := encoder.Encode(result); err != nil {
 			logger.Fatalf("serializing result: %v", err)
 		}
@@ -209,9 +269,9 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	var certificateReq CertificateReq
 	err = json.Unmarshal([]byte(response), &certificateReq)
 	if err != nil {
-		result.ResultCode = "03"
+		result.ResultCode = http.StatusNotImplemented
 		result.ErrorDesc = err.Error()
-		rw.WriteHeader(http.StatusBadRequest)
+		rw.WriteHeader(http.StatusNotImplemented)
 		if err := encoder.Encode(result); err != nil {
 			logger.Fatalf("serializing result: %v", err)
 		}
@@ -231,6 +291,60 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	}
 	logger.Infof("getPolicy: '%s'\n", response)
 
+	return
+}
+
+func (s *motCertAPP) postLogout(rw web.ResponseWriter, req *web.Request) {
+	encoder := json.NewEncoder(rw)
+	var result Result
+	// Decode the incoming JSON payload
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		result.ResultCode = http.StatusBadRequest
+		result.ErrorDesc = err.Error()
+		rw.WriteHeader(http.StatusBadRequest)
+		if err := encoder.Encode(result); err != nil {
+			logger.Fatalf("serializing result: %v", err)
+		}
+		logger.Errorf("Error: %s  :read request error", err)
+		return
+	}
+
+	var certificateReq CertificateReq
+	err = json.Unmarshal(body, &certificateReq)
+	if err != nil {
+		result.ResultCode = http.StatusBadRequest
+		result.ErrorDesc = err.Error()
+		rw.WriteHeader(http.StatusBadRequest)
+		if err := encoder.Encode(result); err != nil {
+			logger.Fatalf("serializing result: %v", err)
+		}
+		logger.Errorf("Error: %s  :Unmarshal request error", err)
+		return
+	}
+
+	logger.Infof("postCertificate: '%s'.\n", certificateReq)
+
+	args := []string{string(body)}
+	txID, err := business.CertificateIn(FabricSetupEntity, args)
+	if err != nil {
+		result.ResultCode = http.StatusNotImplemented
+		result.ErrorDesc = err.Error()
+		rw.WriteHeader(http.StatusNotImplemented)
+		if err := encoder.Encode(result); err != nil {
+			logger.Fatalf("serializing result: %v", err)
+		}
+		logger.Errorf("Error: %s", err)
+		return
+	}
+
+	result.ResultCode = http.StatusOK
+	result.ErrorDesc = fmt.Sprintf("%v", txID)
+	rw.WriteHeader(http.StatusOK)
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+	logger.Infof("postPolicy: '%s'\n", txID)
 	return
 }
 

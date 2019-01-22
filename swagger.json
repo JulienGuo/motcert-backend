@@ -46,8 +46,20 @@
           }
         ],
         "responses": {
-          "405": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Result"
+            }
+          },
+          "400": {
             "description": "Invalid input"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "405": {
+            "description": "Validation exception"
           }
         }
       }
@@ -57,7 +69,7 @@
         "tags": [
           "certificate"
         ],
-        "summary": "Finds Certificates by status",
+        "summary": "Finds Certificates by CertId",
         "description": "Multiple status values can be provided with comma separated strings",
         "operationId": "getCertificate",
         "produces": [
@@ -82,6 +94,49 @@
           "200": {
             "description": "successful operation",
             "schema": {
+              "$ref": "#/definitions/Certificate"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cert not found"
+          }
+        }
+      }
+    },
+    "/certificate/findByTime": {
+      "get": {
+        "tags": [
+          "certificate"
+        ],
+        "summary": "Finds Certificates by Time",
+        "operationId": "getCertificateByTime",
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "校准日期起始日期",
+            "type": "integer",
+            "required": true
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "校准日期结束日期",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/Certificate"
@@ -89,13 +144,16 @@
             }
           },
           "400": {
-            "description": "Invalid status value"
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Cert not found"
           }
         }
       }
     },
     "/user/login": {
-      "get": {
+      "post": {
         "tags": [
           "user"
         ],
@@ -148,7 +206,7 @@
       }
     },
     "/user/logout": {
-      "get": {
+      "post": {
         "tags": [
           "user"
         ],
@@ -169,6 +227,20 @@
     }
   },
   "definitions": {
+    "Result": {
+      "type": "object",
+      "properties": {
+        "resultCode": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    },
     "Certificate": {
       "type": "object",
       "properties": {

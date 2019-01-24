@@ -16,7 +16,7 @@ app:
 
   # TLS Settings
   tls:
-    enabled:  true
+    enabled:  false
     cert:
       file: ../fixtures/certificates/server.crt
     key:

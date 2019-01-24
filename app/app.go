@@ -139,48 +139,89 @@ func (s *motCertAPP) postLogin(rw web.ResponseWriter, req *web.Request) {
 	var result Result
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
+		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 	var user User
 	err = json.Unmarshal(body, &user)
 	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
+		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 	logger.Infof("login: user=%v, pass=%v", user.Name, user.Password)
+	if isRightUser(user) {
+		rw.WriteHeader(http.StatusOK)
+		result.ResultCode = http.StatusOK
+		result.Message = "login in"
+		result.Data = ""
+		if err := sess.Set("username", user.Name); err != nil {
+			logger.Fatal("set session username error: %v", err)
+		}
+		if err := encoder.Encode(result); err != nil {
+			logger.Fatalf("serializing result: %v", err)
+		}
+	} else {
+		deal4xx(result, encoder, nil, rw, http.StatusForbidden)
+	}
+	return
+}
+
+func isRightUser(user User) bool {
 	switch user.Name {
 	case "adminuser1":
-		if user.Password != "XSJXSvdHN9" {
-			deal4xx(result, encoder, nil, rw, http.StatusForbidden)
-			return
+		if user.Password == "XSJXSvdHN9" {
+			return true
 		}
-		logger.Error("adminuser1 pass")
+		logger.Info("adminuser1 pass")
 		break
 	case "adminuser2":
-		if user.Password != "b4Dl6XhbB" {
-			deal4xx(result, encoder, nil, rw, http.StatusForbidden)
-			return
+		if user.Password == "b4Dl6XhbB" {
+			return true
 		}
+		logger.Info("adminuser2 pass")
 		break
 	default:
-		deal4xx(result, encoder, nil, rw, http.StatusForbidden)
-		return
+		return false
+	}
+	return false
+}
+
+func (s *motCertAPP) postLogout(rw web.ResponseWriter, req *web.Request) {
+	logger.Info("postLogout")
+	sess := session.GlobalSessions.SessionStart(rw, req.Request)
+	if err := sess.Delete("username"); err != nil {
+		logger.Fatal("delete session username error: %v", err)
+	}
+	session.GlobalSessions.SessionDestroy(rw, req.Request)
+	var result Result
+	if isLogin(rw, req) {
+		result.ResultCode = http.StatusBadRequest
+		result.Message = "logout failed"
+		logger.Error("Should not be here default")
+	} else {
+		result.ResultCode = http.StatusOK
+		result.Message = "logout success"
 	}
 
-	logger.Error("adminuser1 pass break")
-
-	rw.WriteHeader(http.StatusOK)
-	result.ResultCode = http.StatusOK
-	result.Message = "login in"
-	result.Data = ""
+	encoder := json.NewEncoder(rw)
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
 	}
-	if err := sess.Set("username", "adminuser1"); err != nil {
-		logger.Fatal("set session error: %v", err)
-	}
 	return
+}
+
+func isLogin(rw web.ResponseWriter, req *web.Request) bool {
+	sess := session.GlobalSessions.SessionStart(rw, req.Request)
+	currentUser := sess.Get("username")
+	switch currentUser {
+	case nil:
+		return false
+	case "":
+		return false
+	default:
+		logger.Error("Should not be here default")
+		return true
+	}
 }
 
 func deal4xx(result Result, encoder *json.Encoder, err error, rw web.ResponseWriter, code int) {
@@ -205,14 +246,14 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	// Decode the incoming JSON payload
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
+		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 
 	var certificateReq CertificateReq
 	err = json.Unmarshal(body, &certificateReq)
 	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
+		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 
@@ -249,7 +290,7 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	args := []string{id}
 	response, err := business.CertificateOut(FabricSetupEntity, args)
 	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
+		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 
@@ -289,48 +330,6 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	}
 	logger.Infof("getPolicy: '%s'\n", response)
 
-	return
-}
-
-func (s *motCertAPP) postLogout(rw web.ResponseWriter, req *web.Request) {
-	encoder := json.NewEncoder(rw)
-	var result Result
-	// Decode the incoming JSON payload
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
-		return
-	}
-
-	var certificateReq CertificateReq
-	err = json.Unmarshal(body, &certificateReq)
-	if err != nil {
-		deal4xx(result, encoder, err, rw,400)
-		return
-	}
-
-	logger.Infof("postCertificate: '%s'.\n", certificateReq)
-
-	args := []string{string(body)}
-	txID, err := business.CertificateIn(FabricSetupEntity, args)
-	if err != nil {
-		result.ResultCode = http.StatusNotImplemented
-		result.Message = err.Error()
-		rw.WriteHeader(http.StatusNotImplemented)
-		if err := encoder.Encode(result); err != nil {
-			logger.Fatalf("serializing result: %v", err)
-		}
-		logger.Errorf("Error: %s", err)
-		return
-	}
-
-	result.ResultCode = http.StatusOK
-	result.Message = fmt.Sprintf("%v", txID)
-	rw.WriteHeader(http.StatusOK)
-	if err := encoder.Encode(result); err != nil {
-		logger.Fatalf("serializing result: %v", err)
-	}
-	logger.Infof("postPolicy: '%s'\n", txID)
 	return
 }
 

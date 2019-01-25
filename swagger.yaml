@@ -12,12 +12,10 @@ schemes:
   - https
   - http
 paths:
-  /certificate:
+  '/certificate':
     post:
       tags:
         - certificate
-      summary: Add a new certificate to the block chain
-      description: ''
       consumes:
         - application/json
         - application/xml
@@ -46,7 +44,7 @@ paths:
     get:
       tags:
         - certificate
-      summary: Finds Certificates by CertId
+      summary: Finds Certificate by CertId
       produces:
         - application/xml
         - application/json
@@ -64,12 +62,40 @@ paths:
           description: Invalid input
         '404':
           description: Cert not found
-  /certificate/findByTime:
+  '/openstatus':
+    post:
+      tags:
+        - certificate
+      consumes:
+        - application/json
+        - application/xml
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - in: query
+          name: certId
+          required: true
+          type: string
+        - in: query
+          name: isOpen
+          required: true
+          type: boolean
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Result'
+        '400':
+          description: Invalid input
+        '404':
+          description: Not found
+        '405':
+          description: Validation exception 
+  '/certificate/openlist':
     get:
       tags:
         - certificate
-      summary: Finds Certificates by Time
-      operationId: getCertificateByTime
       produces:
         - application/xml
         - application/json
@@ -78,11 +104,11 @@ paths:
           in: query
           description: 校准日期起始日期
           type: integer
-          required: true
+          required: false
         - name: endDate
           in: query
           description: 校准日期结束日期
-          required: true
+          required: false
           type: integer
       responses:
         '200':
@@ -94,8 +120,37 @@ paths:
         '400':
           description: Invalid input
         '404':
-          description: Cert not found
-  /login:
+          description: Certs not found
+  '/certificate/unfinishedlist':
+    get:
+      tags:
+        - certificate
+      produces:
+        - application/xml
+        - application/json
+      parameters:
+        - name: startDate
+          in: query
+          description: 校准日期起始日期
+          type: integer
+          required: false
+        - name: endDate
+          in: query
+          description: 校准日期结束日期
+          required: false
+          type: integer
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Certificate'
+        '400':
+          description: Invalid input
+        '404':
+          description: Certs not found
+  '/login':
     post:
       tags:
         - login
@@ -122,7 +177,7 @@ paths:
           description: Not found
         '405':
           description: Validation exception
-  /logout:
+  '/logout':
     post:
       tags:
         - logout
@@ -197,6 +252,12 @@ definitions:
         type: string
         description: 建议下次校准日期
         format: string-date
+      isCompleted:
+        type: boolean
+        description: 当前证书是否已经录入完成
+      isOpen:
+        type: boolean
+        description: 当前证书是否是公开状态
     xml:
       name: Certificate
 externalDocs:

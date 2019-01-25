@@ -96,7 +96,7 @@
         }
       }
     },
-    "/openstatus": {
+    "/openStatus": {
       "post": {
         "tags": [
           "certificate"
@@ -111,16 +111,15 @@
         ],
         "parameters": [
           {
-            "in": "query",
-            "name": "certId",
+            "in": "body",
+            "name": "body",
             "required": true,
-            "type": "string"
-          },
-          {
-            "in": "query",
-            "name": "isOpen",
-            "required": true,
-            "type": "boolean"
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Status"
+              }
+            }
           }
         ],
         "responses": {
@@ -142,7 +141,7 @@
         }
       }
     },
-    "/certificate/openlist": {
+    "/certificate/openList": {
       "get": {
         "tags": [
           "certificate"
@@ -186,7 +185,7 @@
         }
       }
     },
-    "/certificate/unfinishedlist": {
+    "/certificate/unfinishedList": {
       "get": {
         "tags": [
           "certificate"
@@ -383,9 +382,17 @@
           "type": "boolean",
           "description": "当前证书是否是公开状态"
         }
-      },
-      "xml": {
-        "name": "Certificate"
+      }
+    },
+    "Status": {
+      "type": "object",
+      "properties": {
+        "certId": {
+          "type": "string"
+        },
+        "isOpen": {
+          "type": "boolean"
+        }
       }
     }
   },

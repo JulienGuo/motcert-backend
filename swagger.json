@@ -64,14 +64,12 @@
         }
       }
     },
-    "/certificate/{certId}{exportId}": {
+    "/certificate/{certId}": {
       "get": {
         "tags": [
           "certificate"
         ],
         "summary": "Finds Certificates by CertId",
-        "description": "Multiple status values can be provided with comma separated strings",
-        "operationId": "getCertificate",
         "produces": [
           "application/xml",
           "application/json"
@@ -82,12 +80,6 @@
             "in": "path",
             "type": "string",
             "required": true
-          },
-          {
-            "name": "exportId",
-            "in": "path",
-            "required": true,
-            "type": "string"
           }
         ],
         "responses": {

@@ -73,7 +73,7 @@ func buildRouter() *web.Router {
 	app := router.Subrouter(motCertAPP{}, "/v1/")
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
-	app.Get("certificate/:id", (*motCertAPP).getCertificate)
+	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
 	app.Post("logout", (*motCertAPP).postLogout)
 
 	return router
@@ -246,6 +246,7 @@ func deal4xx(result Result, encoder *json.Encoder, err error, rw web.ResponseWri
 }
 
 func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("postCertificate start")
 	encoder := json.NewEncoder(rw)
 	var result Result
 	if isLogin(rw, req) {
@@ -282,7 +283,6 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 		result.Data = certificate
 		result.Message = fmt.Sprintf("%v", txID)
 		logger.Infof("postCertificate: '%s'\n", txID)
-
 	} else {
 		result.ResultCode = http.StatusNetworkAuthenticationRequired
 		result.Message = "Should login"
@@ -291,51 +291,50 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
 	}
+	logger.Infof("postCertificate end")
 	return
 }
 
 func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("getCertificate start")
 	encoder := json.NewEncoder(rw)
 	var result Result
-
-	id := req.PathParams["id"]
-	args := []string{id}
-	response, err := business.CertificateOut(FabricSetupEntity, args)
-	if err != nil {
-		deal4xx(result, encoder, err, rw, 400)
-		return
-	}
-
-	if response == "" {
-		result.ResultCode = http.StatusBadRequest
-		result.Message = "have not such data"
-		rw.WriteHeader(http.StatusBadRequest)
-		if err := encoder.Encode(result); err != nil {
-			logger.Fatalf("serializing result: %v", err)
+	if isLogin(rw, req) {
+		certId := req.PathParams["certId"]
+		args := []string{certId}
+		response, err := business.CertificateOut(FabricSetupEntity, args)
+		if err != nil {
+			deal4xx(result, encoder, err, rw, 400)
+			return
 		}
-		logger.Infof("getCertificate: '%s'\n", "")
-		return
-	}
 
-	var certificate Certificate
-	err = json.Unmarshal([]byte(response), &certificate)
-	if err != nil {
-		result.ResultCode = http.StatusNotImplemented
-		result.Message = err.Error()
-		rw.WriteHeader(http.StatusNotImplemented)
-		if err := encoder.Encode(result); err != nil {
-			logger.Fatalf("serializing result: %v", err)
+		if response == "" {
+			deal4xx(result, encoder, err, rw, 404)
+			return
 		}
-		logger.Errorf("Error: %s", err)
-		return
+
+		var certificate Certificate
+		err = json.Unmarshal([]byte(response), &certificate)
+		if err != nil {
+			result.ResultCode = http.StatusNotImplemented
+			result.Message = err.Error()
+			rw.WriteHeader(http.StatusNotImplemented)
+			logger.Errorf("Error: %s", err)
+			return
+		}
+		result.ResultCode = http.StatusOK
+		result.Message = "OK"
+		result.Data = certificate
+	} else {
+		result.ResultCode = http.StatusNetworkAuthenticationRequired
+		result.Message = "Should login"
 	}
-	result.Data = certificate
 
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
 	}
-	logger.Infof("getPolicy: '%s'\n", response)
 
+	logger.Infof("getCertificate end")
 	return
 }
 

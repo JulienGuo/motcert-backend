@@ -28,7 +28,19 @@ type Result struct {
 }
 
 type Certificate struct {
-	Id string `protobuf:"bytes,1,opt,name=id" json:"id"`
+	CertId              string `protobuf:"bytes,1,opt,name=certId" json:"certId"`                            //证书编号
+	CertType            string `protobuf:"bytes,2,opt,name=certType" json:"certType"`                        //证书类型
+	EntrustOrg          string `protobuf:"bytes,3,opt,name=entrustOrg" json:"entrustOrg"`                    //委托单位
+	InstrumentName      string `protobuf:"bytes,4,opt,name=instrumentName" json:"instrumentName"`            //器具名称
+	Spec                string `protobuf:"bytes,5,opt,name=spec" json:"spec"`                                //型号/规格
+	ExportId            string `protobuf:"bytes,6,opt,name=exportId" json:"exportId"`                        //出厂编号
+	MadeByOrg           string `protobuf:"bytes,7,opt,name=madeByOrg" json:"madeByOrg"`                      //制造单位
+	EntrustOrgAdd       string `protobuf:"bytes,8,opt,name=entrustOrgAdd" json:"entrustOrgAdd"`              //委托单位地址
+	Approver            string `protobuf:"bytes,9,opt,name=approver" json:"approver"`                        //批准人
+	Verifier            string `protobuf:"bytes,9,opt,name=verifier" json:"verifier"`                        //核验员
+	CalibratePerson     string `protobuf:"bytes,10,opt,name=calibratePerson" json:"calibratePerson"`         //校准员
+	CalibrateDate       string `protobuf:"bytes,10,opt,name=calibrateDate" json:"calibrateDate"`             //校准日期
+	SuggestNextCaliDate string `protobuf:"bytes,10,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
 }
 
 // start app Service
@@ -213,7 +225,6 @@ func isLogin(rw web.ResponseWriter, req *web.Request) bool {
 	case "":
 		return false
 	default:
-		logger.Error("Should not be here default")
 		return true
 	}
 }
@@ -268,8 +279,9 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 
 		result.ResultCode = http.StatusOK
 		rw.WriteHeader(http.StatusOK)
+		result.Data = certificate
 		result.Message = fmt.Sprintf("%v", txID)
-		logger.Infof("postPolicy: '%s'\n", txID)
+		logger.Infof("postCertificate: '%s'\n", txID)
 
 	} else {
 		result.ResultCode = http.StatusNetworkAuthenticationRequired
@@ -305,8 +317,8 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	var certificateReq Certificate
-	err = json.Unmarshal([]byte(response), &certificateReq)
+	var certificate Certificate
+	err = json.Unmarshal([]byte(response), &certificate)
 	if err != nil {
 		result.ResultCode = http.StatusNotImplemented
 		result.Message = err.Error()
@@ -317,12 +329,6 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 		logger.Errorf("Error: %s", err)
 		return
 	}
-
-	var certificate Certificate
-	certificate = Certificate{
-		Id: certificateReq.Id,
-	}
-
 	result.Data = certificate
 
 	if err := encoder.Encode(result); err != nil {

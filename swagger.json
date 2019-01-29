@@ -185,6 +185,50 @@
         }
       }
     },
+    "/certificate/closedList": {
+      "get": {
+        "tags": [
+          "certificate"
+        ],
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "校准日期起始日期",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "校准日期结束日期",
+            "required": false,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Certificate"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Certs not found"
+          }
+        }
+      }
+    },
     "/certificate/unfinishedList": {
       "get": {
         "tags": [
@@ -296,7 +340,7 @@
       "type": "object",
       "properties": {
         "resultCode": {
-          "type": "string"
+          "type": "integer"
         },
         "message": {
           "type": "string"
@@ -391,6 +435,9 @@
           "type": "string"
         },
         "isOpen": {
+          "type": "boolean"
+        },
+        "isChangedOnChain": {
           "type": "boolean"
         }
       }

@@ -27,8 +27,14 @@ type Result struct {
 	Data       interface{}
 }
 
+type Status struct {
+	CertId           string
+	IsOpen           bool
+	IsChangedOnChain bool
+}
+
 type Certificate struct {
-	CertId              string `protobuf:"bytes,1,opt,name=certId" json:"certId"`                            //证书编号
+	CertId              string `protobuf:"bytes,1,req,name=certId" json:"certId"`                            //证书编号
 	CertType            string `protobuf:"bytes,2,opt,name=certType" json:"certType"`                        //证书类型
 	EntrustOrg          string `protobuf:"bytes,3,opt,name=entrustOrg" json:"entrustOrg"`                    //委托单位
 	InstrumentName      string `protobuf:"bytes,4,opt,name=instrumentName" json:"instrumentName"`            //器具名称
@@ -37,10 +43,12 @@ type Certificate struct {
 	MadeByOrg           string `protobuf:"bytes,7,opt,name=madeByOrg" json:"madeByOrg"`                      //制造单位
 	EntrustOrgAdd       string `protobuf:"bytes,8,opt,name=entrustOrgAdd" json:"entrustOrgAdd"`              //委托单位地址
 	Approver            string `protobuf:"bytes,9,opt,name=approver" json:"approver"`                        //批准人
-	Verifier            string `protobuf:"bytes,9,opt,name=verifier" json:"verifier"`                        //核验员
-	CalibratePerson     string `protobuf:"bytes,10,opt,name=calibratePerson" json:"calibratePerson"`         //校准员
-	CalibrateDate       string `protobuf:"bytes,10,opt,name=calibrateDate" json:"calibrateDate"`             //校准日期
-	SuggestNextCaliDate string `protobuf:"bytes,10,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
+	Verifier            string `protobuf:"bytes,10,opt,name=verifier" json:"verifier"`                       //核验员
+	CalibratePerson     string `protobuf:"bytes,11,opt,name=calibratePerson" json:"calibratePerson"`         //校准员
+	CalibrateDate       string `protobuf:"bytes,12,opt,name=calibrateDate" json:"calibrateDate"`             //校准日期
+	SuggestNextCaliDate string `protobuf:"bytes,13,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
+	IsCompleted         bool   `protobuf:"bytes,14,opt,name=isCompleted" json:"isCompleted"`                 //是否完成
+	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
 }
 
 // start app Service
@@ -269,13 +277,7 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 		args := []string{string(body)}
 		txID, err := business.CertificateIn(FabricSetupEntity, args)
 		if err != nil {
-			result.ResultCode = http.StatusNotImplemented
-			result.Message = err.Error()
-			rw.WriteHeader(http.StatusNotImplemented)
-			if err := encoder.Encode(result); err != nil {
-				logger.Fatalf("serializing result: %v", err)
-			}
-			logger.Errorf("Error: %s", err)
+			deal4xx(result, encoder, err, rw, 501)
 			return
 		}
 
@@ -316,10 +318,7 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	var certificate Certificate
 	err = json.Unmarshal([]byte(response), &certificate)
 	if err != nil {
-		result.ResultCode = http.StatusNotImplemented
-		result.Message = err.Error()
-		rw.WriteHeader(http.StatusNotImplemented)
-		logger.Errorf("Error: %s", err)
+		deal4xx(result, encoder, err, rw, 501)
 		return
 	}
 	result.ResultCode = http.StatusOK
@@ -347,32 +346,41 @@ func (s *motCertAPP) postOpenStatus(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		var certificate Certificate
-		err = json.Unmarshal(body, &certificate)
+		var statuses []Status
+		err = json.Unmarshal(body, &statuses)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, 400)
 			return
 		}
 
-		logger.Infof("postOpenStatus: '%s'.\n", certificate)
-		args := []string{string(body)}
-		txID, err := business.CertificateIn(FabricSetupEntity, args)
-		if err != nil {
-			result.ResultCode = http.StatusNotImplemented
-			result.Message = err.Error()
-			rw.WriteHeader(http.StatusNotImplemented)
-			if err := encoder.Encode(result); err != nil {
-				logger.Fatalf("serializing result: %v", err)
+		for i, _ := range statuses {
+			args := []string{statuses[i].CertId}
+			certStr, err := business.CertificateOut(FabricSetupEntity, args)
+			if err != nil {
+				continue
 			}
-			logger.Errorf("Error: %s", err)
-			return
+
+			var certificate Certificate
+			err = json.Unmarshal([]byte(certStr), &certificate)
+			if err != nil {
+				continue
+			}
+
+			certificate.IsOpen = statuses[i].IsOpen
+
+			nerCert, err := json.Marshal(certificate)
+
+			newArgs := []string{string(nerCert)}
+			_, err = business.CertificateIn(FabricSetupEntity, newArgs)
+			if err != nil {
+				continue
+			}
+			statuses[i].IsChangedOnChain = true
 		}
 
 		result.ResultCode = http.StatusOK
 		rw.WriteHeader(http.StatusOK)
-		result.Data = certificate
-		result.Message = fmt.Sprintf("%v", txID)
-		logger.Infof("postOpenStatus: '%s'\n", txID)
+		result.Data = statuses
 	} else {
 		result.ResultCode = http.StatusNetworkAuthenticationRequired
 		result.Message = "Should login"

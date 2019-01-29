@@ -17,20 +17,20 @@ import (
 )
 
 type User struct {
-	Name     string
-	Password string
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
 type Result struct {
-	ResultCode int
-	Message    string
-	Data       interface{}
+	ResultCode int         `json:"resultCode"`
+	Message    string      `json:"message"`
+	Data       interface{} `json:"data"`
 }
 
 type Status struct {
-	CertId           string
-	IsOpen           bool
-	IsChangedOnChain bool
+	CertId           string `json:"certId"`
+	IsOpen           bool   `json:"isOpen"`
+	IsChangedOnChain bool   `json:"isChangedOnChain"`
 }
 
 type Certificate struct {
@@ -82,6 +82,7 @@ func buildRouter() *web.Router {
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
 	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
+	app.Get("certificate/openList", (*motCertAPP).getOpenList)
 	app.Post("openStatus", (*motCertAPP).postOpenStatus)
 	app.Post("logout", (*motCertAPP).postLogout)
 
@@ -330,6 +331,41 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	logger.Infof("getCertificate end")
+	return
+}
+
+func (s *motCertAPP) getOpenList(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("getOpenList start")
+	encoder := json.NewEncoder(rw)
+	var result Result
+	certId := req.PathParams["certId"]
+	args := []string{certId}
+	response, err := business.CertificateOut(FabricSetupEntity, args)
+	if err != nil {
+		deal4xx(result, encoder, err, rw, 400)
+		return
+	}
+
+	if response == "" {
+		deal4xx(result, encoder, err, rw, 404)
+		return
+	}
+
+	var certificate Certificate
+	err = json.Unmarshal([]byte(response), &certificate)
+	if err != nil {
+		deal4xx(result, encoder, err, rw, 501)
+		return
+	}
+	result.ResultCode = http.StatusOK
+	result.Message = "OK"
+	result.Data = certificate
+
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+
+	logger.Infof("getOpenList end")
 	return
 }
 

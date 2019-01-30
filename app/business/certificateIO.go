@@ -92,17 +92,13 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	return data, nil, http.StatusOK
 }
 
-func CertificateOut(setup *fabricClient.FabricSetup, param map[string]string) (interface{}, error, int) {
+func CertificateOut(setup *fabricClient.FabricSetup, param *map[string]string) (interface{}, error, int) {
 
 	logger.Info("-----------------------------CertificateOut BEGIN---------------------")
-	certId := param["certId"]
-	args := []string{certId}
-	var paraArgs []string
-	for _, arg := range args {
-		paraArgs = append(paraArgs, arg)
-	}
-
-	response, err := setup.Query("getCertificate", paraArgs)
+	certId := make(map[string]string)
+	certId = *param
+	args := []string{certId["certId"]}
+	response, err := setup.Query("getCertificate", args)
 
 	if err != nil {
 		return nil, err, http.StatusBadRequest
@@ -131,12 +127,14 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 		var param map[string]string
 		param = make(map[string]string)
 		param["certId"] = statuses[i].CertId
-		cert, err, _ := CertificateOut(setup, param)
+		cert, err, _ := CertificateOut(setup, &param)
 		if err != nil {
 			continue
 		}
 
-		cert.(Certificate).IsOpen = statuses[i].IsOpen
+		certificate := cert.(Certificate)
+
+		certificate.IsOpen = statuses[i].IsOpen
 
 		nerCert, err := json.Marshal(cert)
 
@@ -169,64 +167,82 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 		pageSize := queryConditions.PageSize
 		pageIndex := queryConditions.PageIndex
 
+		if pageIndex < 1 {
+			return nil, errors.New("PageIndex value should >=1"), http.StatusBadRequest
+		}
+
 		var bookmark string
 		if pageIndex == 1 {
 			bookmark = ""
 		} else if pageIndex > 1 {
-			for index, mark := range openListBookmarks {
-				if index > 0 && index < pageIndex {
+			//当前请求的页数对应没有存储书签，需要依次请求1到pageIndex的书签
+			//循环遍历书签列表，找到最大位的有值书签
 
-				} else if index == pageIndex {
-					if mark == "" || &mark == nil {
-
+			for index := 1; index < pageIndex; index++ {
+				if index < len(openListBookmarks) {
+					if openListBookmarks[index] == "" || &openListBookmarks[index] == nil {
+						bookmark = openListBookmarks[index-1]
+						//调用获取方法，循环更新bookmark
+						newlist, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
+						openListBookmarks[index] = newlist.Bookmark
+					} else {
+						continue
 					}
+				} else {
+					bookmark = openListBookmarks[index-1]
+					//调用获取方法，循环更新bookmark
+					newlist, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
+					openListBookmarks[index] = newlist.Bookmark
 				}
 			}
 		}
+		bookmark = openListBookmarks[pageIndex-1]
+		//调用获取方法，循环更新bookmark
+		listInter, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
 
-		args := []string{queryString, string(pageSize), bookmark}
-
-		var paraArgs []string
-		for _, arg := range args {
-			paraArgs = append(paraArgs, arg)
-		}
-
-		response, err := setup.Query("queryList", paraArgs)
-		if err != nil {
-			return nil, err, http.StatusBadRequest
-		}
-
-		if response == "" {
-			return nil, err, http.StatusNotFound
-		}
-
-		var listInter ListInternal
-		err = json.Unmarshal([]byte(response), &listInter)
-		if err != nil {
-			return nil, err, http.StatusNotImplemented
-		}
-		if len(openListBookmarks) >= pageIndex {
+		if len(openListBookmarks) > pageIndex {
 			if listInter.Bookmark != openListBookmarks[pageIndex] {
 				openListBookmarks[pageIndex] = listInter.Bookmark
-				//书签过时
-				////用go routine去更新书签
-				//go
-				for i := pageIndex + 1; i < listInter.PageCount; i++ {
+				//书签过时，后面的全部置空
+				for i := pageIndex + 1; i < len(openListBookmarks); i++ {
 					openListBookmarks[i] = ""
 				}
 			}
-		} else if len(openListBookmarks) < pageIndex+1 {
-			//书签没有初始化
-			////用go routine去更新书签
-			//go
+		} else if len(openListBookmarks) == pageIndex {
+			openListBookmarks = append(openListBookmarks, listInter.Bookmark)
 		}
 
 		var list List
 		list.PageCount = listInter.PageCount
-		list.PageIndex = queryConditions.PageIndex
+		list.PageIndex = pageIndex
 		list.Certs = listInter.Certs
 		return list, nil, http.StatusOK
 
 	}
 
+}
+
+func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSize int, bookmark string) (*ListInternal, error, int) {
+	args := []string{queryString, string(pageSize), bookmark}
+
+	var paraArgs []string
+	for _, arg := range args {
+		paraArgs = append(paraArgs, arg)
+	}
+
+	response, err := setup.Query("queryList", paraArgs)
+	if err != nil {
+		return nil, err, http.StatusBadRequest
+	}
+
+	if response == "" {
+		return nil, nil, http.StatusNotFound
+	}
+
+	var listInter ListInternal
+	err = json.Unmarshal([]byte(response), &listInter)
+	if err != nil {
+		return nil, err, http.StatusNotImplemented
+	}
+	return &listInter, nil, http.StatusOK
 }

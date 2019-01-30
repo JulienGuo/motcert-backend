@@ -242,7 +242,7 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		data, err,code := business.CertificateIn(FabricSetupEntity, body)
+		data, err, code := business.CertificateIn(FabricSetupEntity, body)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, code)
 			return
@@ -268,7 +268,7 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getCertificate start")
 	encoder := json.NewEncoder(rw)
 	var result Result
-	data, err,code := business.CertificateOut(FabricSetupEntity, req.PathParams)
+	data, err, code := business.CertificateOut(FabricSetupEntity, &req.PathParams)
 	if err != nil {
 		deal4xx(result, encoder, err, rw, code)
 		return
@@ -276,6 +276,7 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 
 	result.ResultCode = code
 	result.Message = "OK"
+
 	result.Data = data
 
 	if err := encoder.Encode(result); err != nil {
@@ -296,7 +297,7 @@ func (s *motCertAPP) postQueryList(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	data, err,code := business.CertificateRichQuery(FabricSetupEntity, body,isLogin(rw, req))
+	data, err, code := business.CertificateRichQuery(FabricSetupEntity, body, isLogin(rw, req))
 	if err != nil {
 		deal4xx(result, encoder, err, rw, code)
 		return
@@ -326,7 +327,7 @@ func (s *motCertAPP) postOpenStatus(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		data,err,code:=business.ChangeStatus(FabricSetupEntity,body)
+		data, err, code := business.ChangeStatus(FabricSetupEntity, body)
 
 		if err != nil {
 			deal4xx(result, encoder, err, rw, code)

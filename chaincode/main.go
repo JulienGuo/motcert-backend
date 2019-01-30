@@ -76,9 +76,6 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 		return shim.Error("Incorrect number of arguments.")
 	}
 
-	// TODO: check duplication
-	//txID := stub.GetTxID()
-
 	body := []byte(args[0])
 	var certificate Certificate
 	err := json.Unmarshal(body, &certificate)
@@ -116,8 +113,12 @@ func (t *SimpleChaincode) getCertificate(stub shim.ChaincodeStubInterface, args 
 	if len(args) != 1 {
 		return shim.Error("Incorrect number of arguments.")
 	}
+	key, err := stub.CreateCompositeKey("certId", []string{args[0]})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
 
-	value, err := stub.GetState(args[0])
+	value, err := stub.GetState(key)
 	if err != nil {
 		return shim.Error(err.Error())
 	}

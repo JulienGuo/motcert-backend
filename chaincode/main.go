@@ -128,13 +128,16 @@ func (t *SimpleChaincode) getCertificate(stub shim.ChaincodeStubInterface, args 
 
 func (t *SimpleChaincode) queryList(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Printf("queryList=%v\n", args)
+	fmt.Printf("queryList=%v\n", args[0])
+	fmt.Printf("queryList=%v\n", args[1])
+	fmt.Printf("queryList=%v\n", args[2])
 
 	if len(args) < 3 {
 		return shim.Error("Incorrect number of arguments. Expecting 3")
 	}
 
 	queryString := args[0]
-	//return type of ParseInt is int64
+
 	pageSize, err := strconv.ParseInt(args[1], 10, 32)
 	if err != nil {
 		return shim.Error(err.Error())

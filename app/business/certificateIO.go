@@ -6,6 +6,7 @@ import (
 	"github.com/op/go-logging"
 	"gitlab.chainnova.com/motcert-backend/app/fabricClient"
 	"net/http"
+	"strconv"
 )
 
 var logger = logging.MustGetLogger("Motcert.business")
@@ -183,7 +184,10 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 					if openListBookmarks[index] == "" || &openListBookmarks[index] == nil {
 						bookmark = openListBookmarks[index-1]
 						//调用获取方法，循环更新bookmark
-						newlist, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
+						newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
+						if err != nil {
+							return err.Error(), err, code
+						}
 						openListBookmarks[index] = newlist.Bookmark
 					} else {
 						continue
@@ -191,14 +195,20 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 				} else {
 					bookmark = openListBookmarks[index-1]
 					//调用获取方法，循环更新bookmark
-					newlist, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
+					newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
+					if err != nil {
+						return err.Error(), err, code
+					}
 					openListBookmarks[index] = newlist.Bookmark
 				}
 			}
 		}
 		bookmark = openListBookmarks[pageIndex-1]
 		//调用获取方法，循环更新bookmark
-		listInter, _, _ := getNewBookmarks(setup, queryString, pageSize, bookmark)
+		listInter, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
+		if err != nil {
+			return err.Error(), err, code
+		}
 
 		if len(openListBookmarks) > pageIndex {
 			if listInter.Bookmark != openListBookmarks[pageIndex] {
@@ -223,14 +233,9 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 }
 
 func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSize int, bookmark string) (*ListInternal, error, int) {
-	args := []string{queryString, string(pageSize), bookmark}
+	args := []string{queryString, strconv.Itoa(pageSize), bookmark}
 
-	var paraArgs []string
-	for _, arg := range args {
-		paraArgs = append(paraArgs, arg)
-	}
-
-	response, err := setup.Query("queryList", paraArgs)
+	response, err := setup.Query("queryList", args)
 	if err != nil {
 		return nil, err, http.StatusBadRequest
 	}

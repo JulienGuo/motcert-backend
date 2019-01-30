@@ -57,7 +57,7 @@ func buildRouter() *web.Router {
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
 	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
-	app.Get("certificate/queryList", (*motCertAPP).postQueryList)
+	app.Post("certificate/queryList", (*motCertAPP).postQueryList)
 	app.Post("openStatus", (*motCertAPP).postOpenStatus)
 	app.Post("logout", (*motCertAPP).postLogout)
 

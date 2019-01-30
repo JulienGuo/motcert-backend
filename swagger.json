@@ -141,8 +141,8 @@
         }
       }
     },
-    "/certificate/openList": {
-      "get": {
+    "/certificate/queryList": {
+      "post": {
         "tags": [
           "certificate"
         ],
@@ -152,40 +152,31 @@
         ],
         "parameters": [
           {
-            "name": "startDate",
-            "in": "query",
-            "description": "校准日期起始日期",
-            "type": "integer",
-            "required": false
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "校准日期结束日期",
-            "required": false,
-            "type": "integer"
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/QueryConditions"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "successful operation",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Certificate"
-              }
+              "$ref": "#/definitions/MetaData"
             }
           },
           "400": {
             "description": "Invalid input"
           },
           "404": {
-            "description": "Certs not found"
+            "description": "Not found"
           }
         }
       }
     },
-    "/certificate/closedList": {
+    "/certificate/queryListByPage": {
       "get": {
         "tags": [
           "certificate"
@@ -196,62 +187,10 @@
         ],
         "parameters": [
           {
-            "name": "startDate",
+            "name": "bookmark",
             "in": "query",
-            "description": "校准日期起始日期",
-            "type": "integer",
-            "required": false
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "校准日期结束日期",
-            "required": false,
-            "type": "integer"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "successful operation",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Certificate"
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input"
-          },
-          "404": {
-            "description": "Certs not found"
-          }
-        }
-      }
-    },
-    "/certificate/unfinishedList": {
-      "get": {
-        "tags": [
-          "certificate"
-        ],
-        "produces": [
-          "application/xml",
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "startDate",
-            "in": "query",
-            "description": "校准日期起始日期",
-            "type": "integer",
-            "required": false
-          },
-          {
-            "name": "endDate",
-            "in": "query",
-            "description": "校准日期结束日期",
-            "required": false,
-            "type": "integer"
+            "type": "string",
+            "required": true
           }
         ],
         "responses": {
@@ -439,6 +378,90 @@
         },
         "isChangedOnChain": {
           "type": "boolean"
+        }
+      }
+    },
+    "MetaData": {
+      "type": "object",
+      "properties": {
+        "pageCount": {
+          "type": "integer"
+        },
+        "bookmarks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Bookmark"
+          }
+        },
+        "certs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Certificate"
+          }
+        }
+      }
+    },
+    "Bookmark": {
+      "type": "object",
+      "properties": {
+        "pageIndex": {
+          "type": "integer"
+        },
+        "bookmark": {
+          "type": "string"
+        }
+      }
+    },
+    "QueryConditions": {
+      "type": "object",
+      "properties": {
+        "pageSize": {
+          "type": "integer",
+          "description": "每页数据量"
+        },
+        "pageIndex": {
+          "type": "integer",
+          "description": "本次请求的页码"
+        },
+        "isOpen": {
+          "type": "boolean",
+          "description": "是否公开"
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "是否完成"
+        },
+        "certType": {
+          "type": "string",
+          "description": "证书类型"
+        },
+        "certId": {
+          "type": "string",
+          "description": "证书编号"
+        },
+        "entrustOrg": {
+          "type": "string",
+          "description": "委托单位"
+        },
+        "instrumentName": {
+          "type": "string",
+          "description": "器具名称"
+        },
+        "startCreateDate": {
+          "type": "string",
+          "description": "起始录入日期"
+        },
+        "endCreateDate": {
+          "type": "string",
+          "description": "结束录入日期"
+        },
+        "startCalibDate": {
+          "type": "string",
+          "description": "起始校准日期"
+        },
+        "endCalibDate": {
+          "type": "string",
+          "description": "结束校准日期"
         }
       }
     }

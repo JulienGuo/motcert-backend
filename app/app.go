@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/gocraft/web"
 	"github.com/spf13/viper"
 	"gitlab.chainnova.com/motcert-backend/app/business"
@@ -25,30 +24,6 @@ type Result struct {
 	ResultCode int         `json:"resultCode"`
 	Message    string      `json:"message"`
 	Data       interface{} `json:"data"`
-}
-
-type Status struct {
-	CertId           string `json:"certId"`
-	IsOpen           bool   `json:"isOpen"`
-	IsChangedOnChain bool   `json:"isChangedOnChain"`
-}
-
-type Certificate struct {
-	CertId              string `protobuf:"bytes,1,req,name=certId" json:"certId"`                            //证书编号
-	CertType            string `protobuf:"bytes,2,opt,name=certType" json:"certType"`                        //证书类型
-	EntrustOrg          string `protobuf:"bytes,3,opt,name=entrustOrg" json:"entrustOrg"`                    //委托单位
-	InstrumentName      string `protobuf:"bytes,4,opt,name=instrumentName" json:"instrumentName"`            //器具名称
-	Spec                string `protobuf:"bytes,5,opt,name=spec" json:"spec"`                                //型号/规格
-	ExportId            string `protobuf:"bytes,6,opt,name=exportId" json:"exportId"`                        //出厂编号
-	MadeByOrg           string `protobuf:"bytes,7,opt,name=madeByOrg" json:"madeByOrg"`                      //制造单位
-	EntrustOrgAdd       string `protobuf:"bytes,8,opt,name=entrustOrgAdd" json:"entrustOrgAdd"`              //委托单位地址
-	Approver            string `protobuf:"bytes,9,opt,name=approver" json:"approver"`                        //批准人
-	Verifier            string `protobuf:"bytes,10,opt,name=verifier" json:"verifier"`                       //核验员
-	CalibratePerson     string `protobuf:"bytes,11,opt,name=calibratePerson" json:"calibratePerson"`         //校准员
-	CalibrateDate       string `protobuf:"bytes,12,opt,name=calibrateDate" json:"calibrateDate"`             //校准日期
-	SuggestNextCaliDate string `protobuf:"bytes,13,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
-	IsCompleted         bool   `protobuf:"bytes,14,opt,name=isCompleted" json:"isCompleted"`                 //是否完成
-	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
 }
 
 // start app Service
@@ -82,7 +57,7 @@ func buildRouter() *web.Router {
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
 	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
-	app.Get("certificate/openList", (*motCertAPP).getOpenList)
+	app.Get("certificate/queryList", (*motCertAPP).postQueryList)
 	app.Post("openStatus", (*motCertAPP).postOpenStatus)
 	app.Post("logout", (*motCertAPP).postLogout)
 
@@ -267,28 +242,18 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		var certificate Certificate
-		err = json.Unmarshal(body, &certificate)
+		data, err,code := business.CertificateIn(FabricSetupEntity, body)
 		if err != nil {
-			deal4xx(result, encoder, err, rw, 400)
+			deal4xx(result, encoder, err, rw, code)
 			return
 		}
 
-		logger.Infof("postCertificate: '%s'.\n", certificate)
-		args := []string{string(body)}
-		txID, err := business.CertificateIn(FabricSetupEntity, args)
-		if err != nil {
-			deal4xx(result, encoder, err, rw, 501)
-			return
-		}
-
-		result.ResultCode = http.StatusOK
-		rw.WriteHeader(http.StatusOK)
-		result.Data = certificate
-		result.Message = fmt.Sprintf("%v", txID)
-		logger.Infof("postCertificate: '%s'\n", txID)
+		result.ResultCode = code
+		rw.WriteHeader(code)
+		result.Data = data
+		result.Message = "OK"
 	} else {
-		result.ResultCode = http.StatusNetworkAuthenticationRequired
+		result.ResultCode = http.StatusUnauthorized
 		result.Message = "Should login"
 	}
 
@@ -303,28 +268,15 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getCertificate start")
 	encoder := json.NewEncoder(rw)
 	var result Result
-	certId := req.PathParams["certId"]
-	args := []string{certId}
-	response, err := business.CertificateOut(FabricSetupEntity, args)
+	data, err,code := business.CertificateOut(FabricSetupEntity, req.PathParams)
 	if err != nil {
-		deal4xx(result, encoder, err, rw, 400)
+		deal4xx(result, encoder, err, rw, code)
 		return
 	}
 
-	if response == "" {
-		deal4xx(result, encoder, err, rw, 404)
-		return
-	}
-
-	var certificate Certificate
-	err = json.Unmarshal([]byte(response), &certificate)
-	if err != nil {
-		deal4xx(result, encoder, err, rw, 501)
-		return
-	}
-	result.ResultCode = http.StatusOK
+	result.ResultCode = code
 	result.Message = "OK"
-	result.Data = certificate
+	result.Data = data
 
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
@@ -334,38 +286,30 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	return
 }
 
-func (s *motCertAPP) getOpenList(rw web.ResponseWriter, req *web.Request) {
-	logger.Infof("getOpenList start")
+func (s *motCertAPP) postQueryList(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("postQueryList start")
 	encoder := json.NewEncoder(rw)
 	var result Result
-	certId := req.PathParams["certId"]
-	args := []string{certId}
-	response, err := business.CertificateOut(FabricSetupEntity, args)
+	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		deal4xx(result, encoder, err, rw, 400)
 		return
 	}
 
-	if response == "" {
-		deal4xx(result, encoder, err, rw, 404)
-		return
-	}
-
-	var certificate Certificate
-	err = json.Unmarshal([]byte(response), &certificate)
+	data, err,code := business.CertificateRichQuery(FabricSetupEntity, body,isLogin(rw, req))
 	if err != nil {
-		deal4xx(result, encoder, err, rw, 501)
+		deal4xx(result, encoder, err, rw, code)
 		return
 	}
 	result.ResultCode = http.StatusOK
 	result.Message = "OK"
-	result.Data = certificate
+	result.Data = data
 
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
 	}
 
-	logger.Infof("getOpenList end")
+	logger.Infof("postQueryList end")
 	return
 }
 
@@ -382,43 +326,17 @@ func (s *motCertAPP) postOpenStatus(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		var statuses []Status
-		err = json.Unmarshal(body, &statuses)
+		data,err,code:=business.ChangeStatus(FabricSetupEntity,body)
+
 		if err != nil {
-			deal4xx(result, encoder, err, rw, 400)
+			deal4xx(result, encoder, err, rw, code)
 			return
 		}
-
-		for i, _ := range statuses {
-			args := []string{statuses[i].CertId}
-			certStr, err := business.CertificateOut(FabricSetupEntity, args)
-			if err != nil {
-				continue
-			}
-
-			var certificate Certificate
-			err = json.Unmarshal([]byte(certStr), &certificate)
-			if err != nil {
-				continue
-			}
-
-			certificate.IsOpen = statuses[i].IsOpen
-
-			nerCert, err := json.Marshal(certificate)
-
-			newArgs := []string{string(nerCert)}
-			_, err = business.CertificateIn(FabricSetupEntity, newArgs)
-			if err != nil {
-				continue
-			}
-			statuses[i].IsChangedOnChain = true
-		}
-
-		result.ResultCode = http.StatusOK
-		rw.WriteHeader(http.StatusOK)
-		result.Data = statuses
+		result.ResultCode = code
+		rw.WriteHeader(code)
+		result.Data = data
 	} else {
-		result.ResultCode = http.StatusNetworkAuthenticationRequired
+		result.ResultCode = http.StatusUnauthorized
 		result.Message = "Should login"
 	}
 

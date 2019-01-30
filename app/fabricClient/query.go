@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (setup *FabricSetup) Query(args []string) (string, error) {
+func (setup *FabricSetup) Query(methodName string,args []string) (string, error) {
 
 	//Prepare arguments
 	var paraArgs [][]byte
@@ -13,7 +13,7 @@ func (setup *FabricSetup) Query(args []string) (string, error) {
 		paraArgs = append(paraArgs, []byte(arg))
 	}
 
-	response, err := setup.client.Query(channel.Request{ChaincodeID: setup.ChainCodeID, Fcn: "invoke", Args: paraArgs})
+	response, err := setup.client.Query(channel.Request{ChaincodeID: setup.ChainCodeID, Fcn: methodName, Args: paraArgs})
 	if err != nil {
 		return "", errors.Errorf("failed to query :%v", err)
 	}

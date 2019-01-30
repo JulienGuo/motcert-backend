@@ -19,12 +19,11 @@ func (setup *FabricSetup) Execute(eventID, methodName string, args []string) (st
 	defer setup.event.Unregister(reg)
 
 	var paraArgs [][]byte
-	paraArgs = append(paraArgs, []byte(methodName))
 	for _, arg := range args {
 		paraArgs = append(paraArgs, []byte(arg))
 	}
 	// Create a request (proposal) and send it
-	response, err := setup.client.Execute(channel.Request{ChaincodeID: setup.ChainCodeID, Fcn: "invoke", Args: paraArgs, TransientMap: transientDataMap})
+	response, err := setup.client.Execute(channel.Request{ChaincodeID: setup.ChainCodeID, Fcn: methodName, Args: paraArgs, TransientMap: transientDataMap})
 	if err != nil {
 		return "", errors.Errorf("failed to execute: %v", err)
 	}

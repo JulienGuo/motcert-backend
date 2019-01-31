@@ -68,9 +68,9 @@ type ListInternal struct {
 	Certs     []Certificate
 }
 type List struct {
-	PageCount int
-	PageIndex int
-	Certs     []Certificate
+	PageCount int           `json:"pageCount"`
+	PageIndex int           `json:"pageIndex"`
+	Certs     []Certificate `json:"certs"`
 }
 
 func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, error, int) {

@@ -141,7 +141,7 @@
         }
       }
     },
-    "/certificate/queryList": {
+    "/certificate/openList": {
       "post": {
         "tags": [
           "certificate"
@@ -176,8 +176,8 @@
         }
       }
     },
-    "/certificate/queryListByPage": {
-      "get": {
+    "/certificate/deletedList": {
+      "post": {
         "tags": [
           "certificate"
         ],
@@ -187,27 +187,61 @@
         ],
         "parameters": [
           {
-            "name": "bookmark",
-            "in": "query",
-            "type": "string",
-            "required": true
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/QueryConditions"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "successful operation",
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/Certificate"
-              }
+              "$ref": "#/definitions/MetaData"
             }
           },
           "400": {
             "description": "Invalid input"
           },
           "404": {
-            "description": "Certs not found"
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/certificate/draftList": {
+      "post": {
+        "tags": [
+          "certificate"
+        ],
+        "produces": [
+          "application/xml",
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/QueryConditions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/MetaData"
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }

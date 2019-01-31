@@ -57,7 +57,9 @@ func buildRouter() *web.Router {
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
 	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
-	app.Post("certificate/queryList", (*motCertAPP).postQueryList)
+	app.Post("certificate/openList", (*motCertAPP).getOpenList)
+	app.Post("certificate/deletedList", (*motCertAPP).getDeletedList)
+	app.Post("certificate/draftList", (*motCertAPP).getDraftList)
 	app.Post("openStatus", (*motCertAPP).postOpenStatus)
 	app.Post("logout", (*motCertAPP).postLogout)
 
@@ -287,8 +289,8 @@ func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	return
 }
 
-func (s *motCertAPP) postQueryList(rw web.ResponseWriter, req *web.Request) {
-	logger.Infof("postQueryList start")
+func (s *motCertAPP) getOpenList(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("getOpenList start")
 	encoder := json.NewEncoder(rw)
 	var result Result
 	body, err := ioutil.ReadAll(req.Body)
@@ -297,7 +299,7 @@ func (s *motCertAPP) postQueryList(rw web.ResponseWriter, req *web.Request) {
 		return
 	}
 
-	data, err, code := business.CertificateRichQuery(FabricSetupEntity, body, isLogin(rw, req))
+	data, err, code := business.OpenListRichQuery(FabricSetupEntity, body, isLogin(rw, req))
 	if err != nil {
 		deal4xx(result, encoder, err, rw, code)
 		return
@@ -310,7 +312,61 @@ func (s *motCertAPP) postQueryList(rw web.ResponseWriter, req *web.Request) {
 		logger.Fatalf("serializing result: %v", err)
 	}
 
-	logger.Infof("postQueryList end")
+	logger.Infof("getOpenList end")
+	return
+}
+
+func (s *motCertAPP) getDeletedList(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("getDeletedList start")
+	encoder := json.NewEncoder(rw)
+	var result Result
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		deal4xx(result, encoder, err, rw, 400)
+		return
+	}
+
+	data, err, code := business.DeletedListRichQuery(FabricSetupEntity, body, isLogin(rw, req))
+	if err != nil {
+		deal4xx(result, encoder, err, rw, code)
+		return
+	}
+	result.ResultCode = http.StatusOK
+	result.Message = "OK"
+	result.Data = data
+
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+
+	logger.Infof("getDeletedList end")
+	return
+}
+
+func (s *motCertAPP) getDraftList(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("getDraftList start")
+	encoder := json.NewEncoder(rw)
+	var result Result
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		deal4xx(result, encoder, err, rw, 400)
+		return
+	}
+
+	data, err, code := business.DraftListRichQuery(FabricSetupEntity, body, isLogin(rw, req))
+	if err != nil {
+		deal4xx(result, encoder, err, rw, code)
+		return
+	}
+	result.ResultCode = http.StatusOK
+	result.Message = "OK"
+	result.Data = data
+
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+
+	logger.Infof("getDraftList end")
 	return
 }
 

@@ -13,14 +13,14 @@ import (
 var logger = logging.MustGetLogger("Motcert.business")
 
 var openListBookmarks []string
-var closedListBookmarks []string
-var unfinishedListBookmars []string
+var deletedListBookmarks []string
+var draftListBookmarks []string
 
 func init() {
 	//可以加定时任务优化
 	openListBookmarks = append(openListBookmarks, "")
-	closedListBookmarks = append(closedListBookmarks, "")
-	unfinishedListBookmars = append(unfinishedListBookmars, "")
+	deletedListBookmarks = append(deletedListBookmarks, "")
+	draftListBookmarks = append(draftListBookmarks, "")
 }
 
 type Certificate struct {
@@ -39,28 +39,30 @@ type Certificate struct {
 	SuggestNextCaliDate string `protobuf:"bytes,13,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
 	IsCompleted         bool   `protobuf:"bytes,14,opt,name=isCompleted" json:"isCompleted"`                 //是否完成
 	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
-	CreateDate          string `protobuf:"bytes,16,opt,name=createDate" json:"createDate"`                   //创建日期
+	IsDeleted           bool   `protobuf:"bytes,16,opt,name=isDeleted" json:"isDeleted"`                     //是否删除
+	CreateDate          string `protobuf:"bytes,17,opt,name=createDate" json:"createDate"`                   //创建日期
 }
 
 type Status struct {
 	CertId           string `json:"certId"`
-	IsOpen           bool   `json:"isOpen"`
+	IsDeleted        bool   `json:"isDeleted"`
 	IsChangedOnChain bool   `json:"isChangedOnChain"`
 }
 
 type QueryConditions struct {
-	PageSize        int    `protobuf:"bytes,1,req,name=pageSize" json:"pageSize"`               //每页数据量
-	PageIndex       int    `protobuf:"bytes,2,req,name=pageIndex" json:"pageIndex"`             //本次请求的页号
-	IsOpen          bool   `protobuf:"bytes,3,req,name=isOpen" json:"isOpen"`                   //是否公开
-	IsCompleted     bool   `protobuf:"bytes,4,req,name=isCompleted" json:"isCompleted"`         //是否完成
-	CertType        string `protobuf:"bytes,5,opt,name=certType" json:"certType"`               //证书类型
-	CertId          string `protobuf:"bytes,6,opt,name=certId" json:"certId"`                   //证书编号
-	EntrustOrg      string `protobuf:"bytes,7,opt,name=entrustOrg" json:"entrustOrg"`           //委托单位
-	InstrumentName  string `protobuf:"bytes,8,opt,name=instrumentName" json:"instrumentName"`   //器具名称
-	StartCreateDate string `protobuf:"bytes,9,opt,name=startCreateDate" json:"startCreateDate"` //起始录入日期
-	EndCreateDate   string `protobuf:"bytes,10,opt,name=endCreateDate" json:"endCreateDate"`    //结束录入日期
-	StartCalibDate  string `protobuf:"bytes,11,opt,name=startCalibDate" json:"startCalibDate"`  //起始校准日期
-	EndCalibDate    string `protobuf:"bytes,12,opt,name=endCalibDate" json:"endCalibDate"`      //结束校准日期
+	PageSize        int    `protobuf:"bytes,1,req,name=pageSize" json:"pageSize"`                //每页数据量
+	PageIndex       int    `protobuf:"bytes,2,req,name=pageIndex" json:"pageIndex"`              //本次请求的页号
+	IsOpen          bool   `protobuf:"bytes,3,opt,name=isOpen" json:"isOpen"`                    //是否公开
+	IsCompleted     bool   `protobuf:"bytes,4,opt,name=isCompleted" json:"isCompleted"`          //是否完成
+	IsDeleted       bool   `protobuf:"bytes,5,opt,name=isDeleted" json:"isDeleted"`              //是否删除
+	CertType        string `protobuf:"bytes,6,opt,name=certType" json:"certType"`                //证书类型
+	CertId          string `protobuf:"bytes,7,opt,name=certId" json:"certId"`                    //证书编号
+	EntrustOrg      string `protobuf:"bytes,8,opt,name=entrustOrg" json:"entrustOrg"`            //委托单位
+	InstrumentName  string `protobuf:"bytes,9,opt,name=instrumentName" json:"instrumentName"`    //器具名称
+	StartCreateDate string `protobuf:"bytes,10,opt,name=startCreateDate" json:"startCreateDate"` //起始录入日期
+	EndCreateDate   string `protobuf:"bytes,11,opt,name=endCreateDate" json:"endCreateDate"`     //结束录入日期
+	StartCalibDate  string `protobuf:"bytes,12,opt,name=startCalibDate" json:"startCalibDate"`   //起始校准日期
+	EndCalibDate    string `protobuf:"bytes,13,opt,name=endCalibDate" json:"endCalibDate"`       //结束校准日期
 }
 
 type ListInternal struct {
@@ -76,7 +78,7 @@ type List struct {
 
 func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, error, int) {
 
-	logger.Info("-----CertificateIn-----")
+	logger.Info("-----CertificateIn BEGIN-----")
 	var certificate Certificate
 	err := json.Unmarshal(body, &certificate)
 	if err != nil {
@@ -91,6 +93,7 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
+	logger.Info("-----CertificateIn END-----")
 	return data, nil, http.StatusOK
 }
 
@@ -115,10 +118,13 @@ func CertificateOut(setup *fabricClient.FabricSetup, param *map[string]string) (
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
+	logger.Info("-----------------------------CertificateOut END---------------------")
 	return certificate, nil, http.StatusOK
 }
 
 func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, error, int) {
+
+	logger.Info("-----------------------------ChangeStatus BEGIN---------------------")
 	var statuses []Status
 	err := json.Unmarshal(body, &statuses)
 	if err != nil {
@@ -136,7 +142,7 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 
 		certificate := cert.(Certificate)
 
-		certificate.IsOpen = statuses[i].IsOpen
+		certificate.IsDeleted = statuses[i].IsDeleted
 
 		nerCert, err := json.Marshal(cert)
 
@@ -146,13 +152,48 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 		}
 		statuses[i].IsChangedOnChain = true
 	}
+	logger.Info("-----------------------------ChangeStatus END---------------------")
 	return statuses, nil, http.StatusOK
 }
 
-func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
+func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
 
-	logger.Info("-----------------------------CertificateOut BEGIN---------------------")
+	logger.Info("-----------------------------OpenListRichQuery BEGIN---------------------")
+	var queryString string
+	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", true, true, false)
 
+	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":true},{\"isCompleted\": true},{\"isDeleted\": false}]}}"
+	queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v}}", true)
+	logger.Info("-----------------------------OpenListRichQuery END---------------------")
+	return CertificateRichQuery(setup, body, isLogin, queryString, &openListBookmarks)
+}
+
+func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
+
+	logger.Info("-----------------------------DeletedListRichQuery BEGIN---------------------")
+	var queryString string
+	//queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", false)
+	queryString = "{\"selector\":{\"isDeleted\": true}}"
+	queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", true)
+	logger.Info("-----------------------------DeletedListRichQuery END---------------------")
+	return CertificateRichQuery(setup, body, isLogin, queryString, &deletedListBookmarks)
+}
+
+func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
+
+	logger.Info("-----------------------------DraftListRichQuery BEGIN---------------------")
+	var queryString string
+	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", false, false, false)
+	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":false},{\"isCompleted\": false},{\"isDeleted\": false}]}}"
+	queryString = fmt.Sprintf("{\"selector\":{\"isCompleted\":%v}}", false)
+	logger.Info("-----------------------------DraftListRichQuery END---------------------")
+	return CertificateRichQuery(setup, body, isLogin, queryString, &draftListBookmarks)
+}
+
+func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool, queryString string, bookmarks *[]string) (interface{}, error, int) {
+
+	logger.Info("-----------------------------CertificateRichQuery BEGIN---------------------")
+	logger.Error(queryString + "|||||||||||||||")
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {
@@ -162,8 +203,6 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 	if queryConditions.IsOpen == false && !isLogin {
 		return nil, errors.New("Should login"), http.StatusUnauthorized
 	} else {
-		var queryString string
-		queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v}}", true)
 		pageSize := queryConditions.PageSize
 		pageIndex := queryConditions.PageIndex
 
@@ -177,48 +216,47 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 		} else if pageIndex > 1 {
 			//当前请求的页数对应没有存储书签，需要依次请求1到pageIndex的书签
 			//循环遍历书签列表，找到最大位的有值书签
-
 			for index := 1; index < pageIndex; index++ {
-				if index < len(openListBookmarks) {
-					if openListBookmarks[index] == "" || &openListBookmarks[index] == nil {
-						bookmark = openListBookmarks[index-1]
+				if index < len(*bookmarks) {
+					if (*bookmarks)[index] == "" || &(*bookmarks)[index] == nil {
+						bookmark = (*bookmarks)[index-1]
 						//调用获取方法，循环更新bookmark
 						newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
 						if err != nil {
 							return err.Error(), err, code
 						}
-						openListBookmarks[index] = newlist.Bookmark
+						(*bookmarks)[index] = newlist.Bookmark
 					} else {
 						continue
 					}
 				} else {
-					bookmark = openListBookmarks[index-1]
+					bookmark = (*bookmarks)[index-1]
 					//调用获取方法，循环更新bookmark
 					newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
 					if err != nil {
 						return err.Error(), err, code
 					}
-					openListBookmarks[index] = newlist.Bookmark
+					(*bookmarks)[index] = newlist.Bookmark
 				}
 			}
 		}
-		bookmark = openListBookmarks[pageIndex-1]
+		bookmark = (*bookmarks)[pageIndex-1]
 		//调用获取方法，循环更新bookmark
 		listInter, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
 		if err != nil {
 			return err.Error(), err, code
 		}
 
-		if len(openListBookmarks) > pageIndex {
-			if listInter.Bookmark != openListBookmarks[pageIndex] {
-				openListBookmarks[pageIndex] = listInter.Bookmark
+		if len(*bookmarks) > pageIndex {
+			if listInter.Bookmark != (*bookmarks)[pageIndex] {
+				(*bookmarks)[pageIndex] = listInter.Bookmark
 				//书签过时，后面的全部置空
-				for i := pageIndex + 1; i < len(openListBookmarks); i++ {
-					openListBookmarks[i] = ""
+				for i := pageIndex + 1; i < len(*bookmarks); i++ {
+					(*bookmarks)[i] = ""
 				}
 			}
-		} else if len(openListBookmarks) == pageIndex {
-			openListBookmarks = append(openListBookmarks, listInter.Bookmark)
+		} else if len(*bookmarks) == pageIndex {
+			*bookmarks = append(*bookmarks, listInter.Bookmark)
 		}
 
 		var list List
@@ -226,9 +264,7 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 		list.PageIndex = pageIndex
 		list.Certs = listInter.Certs
 		return list, nil, http.StatusOK
-
 	}
-
 }
 
 func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSize int, bookmark string) (*ListInternal, error, int) {

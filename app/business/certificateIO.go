@@ -3,6 +3,7 @@ package business
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"gitlab.chainnova.com/motcert-backend/app/fabricClient"
 	"net/http"
@@ -162,9 +163,7 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 		return nil, errors.New("Should login"), http.StatusUnauthorized
 	} else {
 		var queryString string
-		if queryConditions.IsOpen {
-			queryString = "{\"selector\":{\"isOpen\":true}}"
-		}
+		queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v}}", true)
 		pageSize := queryConditions.PageSize
 		pageIndex := queryConditions.PageIndex
 

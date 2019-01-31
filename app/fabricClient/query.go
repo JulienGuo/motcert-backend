@@ -7,13 +7,11 @@ import (
 
 func (setup *FabricSetup) Query(methodName string,args []string) (string, error) {
 
-	logger.Error(args,"|||||")
 	//Prepare arguments
 	var paraArgs [][]byte
 	for _, arg := range args {
 		paraArgs = append(paraArgs, []byte(arg))
 	}
-	logger.Error(paraArgs,"|||||")
 
 	response, err := setup.client.Query(channel.Request{ChaincodeID: setup.ChainCodeID, Fcn: methodName, Args: paraArgs})
 	if err != nil {

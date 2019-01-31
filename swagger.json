@@ -364,6 +364,10 @@
         "isOpen": {
           "type": "boolean",
           "description": "当前证书是否是公开状态"
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "当前证书是否是已删除状态"
         }
       }
     },
@@ -430,6 +434,10 @@
         "isCompleted": {
           "type": "boolean",
           "description": "是否完成"
+        },
+        "isDeleted": {
+          "type": "boolean",
+          "description": "是否删除"
         },
         "certType": {
           "type": "string",

@@ -12,7 +12,7 @@ schemes:
   - https
   - http
 paths:
-  '/certificate':
+  /certificate:
     post:
       tags:
         - certificate
@@ -62,7 +62,7 @@ paths:
           description: Invalid input
         '404':
           description: Cert not found
-  '/openStatus':
+  /openStatus:
     post:
       tags:
         - certificate
@@ -91,7 +91,7 @@ paths:
           description: Not found
         '405':
           description: Validation exception
-  '/certificate/queryList':
+  /certificate/queryList:
     post:
       tags:
         - certificate
@@ -113,7 +113,7 @@ paths:
           description: Invalid input
         '404':
           description: Not found
-  '/certificate/queryListByPage':
+  /certificate/queryListByPage:
     get:
       tags:
         - certificate
@@ -136,7 +136,7 @@ paths:
           description: Invalid input
         '404':
           description: Certs not found
-  '/login':
+  /login:
     post:
       tags:
         - login
@@ -163,7 +163,7 @@ paths:
           description: Not found
         '405':
           description: Validation exception
-  '/logout':
+  /logout:
     post:
       tags:
         - logout
@@ -244,6 +244,9 @@ definitions:
       isOpen:
         type: boolean
         description: 当前证书是否是公开状态
+      isDeleted:
+        type: boolean
+        description: 当前证书是否是已删除状态
   Status:
     type: object
     properties:
@@ -288,6 +291,9 @@ definitions:
       isCompleted:
         type: boolean
         description: 是否完成
+      isDeleted:
+        type: boolean
+        description: 是否删除
       certType:
         type: string
         description: 证书类型

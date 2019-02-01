@@ -164,8 +164,17 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 
 	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":true},{\"isCompleted\": true},{\"isDeleted\": false}]}}"
 	queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v}}", true)
+
+	var queryConditions QueryConditions
+	err := json.Unmarshal(body, &queryConditions)
+	if err != nil {
+		return err.Error(), err, http.StatusBadRequest
+	}
+
+	queryConditions.IsOpen = true
+
 	logger.Info("-----------------------------OpenListRichQuery END---------------------")
-	return CertificateRichQuery(setup, body, isLogin, queryString, &openListBookmarks)
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &openListBookmarks)
 }
 
 func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
@@ -175,8 +184,14 @@ func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 	//queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", false)
 	queryString = "{\"selector\":{\"isDeleted\": true}}"
 	queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", true)
+	var queryConditions QueryConditions
+	err := json.Unmarshal(body, &queryConditions)
+	if err != nil {
+		return err.Error(), err, http.StatusBadRequest
+	}
+
 	logger.Info("-----------------------------DeletedListRichQuery END---------------------")
-	return CertificateRichQuery(setup, body, isLogin, queryString, &deletedListBookmarks)
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &deletedListBookmarks)
 }
 
 func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
@@ -186,19 +201,19 @@ func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bo
 	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", false, false, false)
 	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":false},{\"isCompleted\": false},{\"isDeleted\": false}]}}"
 	queryString = fmt.Sprintf("{\"selector\":{\"isCompleted\":%v}}", false)
-	logger.Info("-----------------------------DraftListRichQuery END---------------------")
-	return CertificateRichQuery(setup, body, isLogin, queryString, &draftListBookmarks)
-}
-
-func CertificateRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool, queryString string, bookmarks *[]string) (interface{}, error, int) {
-
-	logger.Info("-----------------------------CertificateRichQuery BEGIN---------------------")
-	logger.Error(queryString + "|||||||||||||||")
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {
 		return err.Error(), err, http.StatusBadRequest
 	}
+	logger.Info("-----------------------------DraftListRichQuery END---------------------")
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &draftListBookmarks)
+}
+
+func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions QueryConditions, isLogin bool, queryString string, bookmarks *[]string) (interface{}, error, int) {
+
+	logger.Info("-----------------------------CertificateRichQuery BEGIN---------------------")
+	logger.Error(queryString + "|||||||||||||||")
 
 	if queryConditions.IsOpen == false && !isLogin {
 		return nil, errors.New("Should login"), http.StatusUnauthorized

@@ -120,7 +120,7 @@ func (s *motCertAPP) basicAuthenticate(rw web.ResponseWriter, req *web.Request, 
 	// Set header for later use
 	req.Header.Set("user", user)
 	req.Header.Set("pass", pass)
-	logger.Infof("basic authentication: user=%v, pass=%v", user, pass)
+	logger.Infof("basic authentication: user=%v", user)
 
 	next(rw, req)
 }
@@ -300,7 +300,7 @@ func (s *motCertAPP) getOpenList(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	data, err, code := business.OpenListRichQuery(FabricSetupEntity, body, isLogin(rw, req))
-	if err != nil {
+		if err != nil {
 		deal4xx(result, encoder, err, rw, code)
 		return
 	}

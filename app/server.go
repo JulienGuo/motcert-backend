@@ -30,14 +30,14 @@ var (
 			return appService(args)
 		},
 	}
-	updateStartCmd = &cobra.Command{
-		Use:   "update",
-		Short: "update the app",
-		Long:  "update a app that interacts with the network",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return appService(args)
-		},
-	}
+	//updateStartCmd = &cobra.Command{
+	//	Use:   "update",
+	//	Short: "update the app",
+	//	Long:  "update a app that interacts with the network",
+	//	RunE: func(cmd *cobra.Command, args []string) error {
+	//		return appService(args)
+	//	},
+	//}
 )
 
 // The main command describes the service and
@@ -80,7 +80,7 @@ func main() {
 	mainFlags.BoolVarP(&versionFlag, "version", "v", false, "Display current version")
 	mainCmd.AddCommand(VersionCmd())
 	mainCmd.AddCommand(appStartCmd)
-	mainCmd.AddCommand(updateStartCmd)
+	//mainCmd.AddCommand(updateStartCmd)
 	mainCmd.AddCommand(testCmd())
 	runtime.GOMAXPROCS(viper.GetInt("app.gomaxprocs"))
 

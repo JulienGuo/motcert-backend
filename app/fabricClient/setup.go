@@ -74,12 +74,10 @@ func (setup *FabricSetup) Initialize() error {
 	if err != nil {
 		return errors.WithMessage(err, "failed to get admin signing identity")
 	}
-	req := resmgmt.SaveChannelRequest{ChannelID: setup.ChannelID, ChannelConfigPath: setup.ChannelConfig, SigningIdentities: []msp.SigningIdentity{adminIdentity}}
-	txID, err := setup.admin.SaveChannel(req, resmgmt.WithOrdererEndpoint(setup.OrdererID))
-	if err != nil || txID.TransactionID == "" {
-		return errors.WithMessage(err, "failed to save channel")
+	err = creatChannel(setup, adminIdentity)
+	if err != nil {
+		return err
 	}
-	logger.Info("Channel created")
 
 	// Make admin user join the previously created channel
 	if err = setup.admin.JoinChannel(setup.ChannelID, resmgmt.WithRetry(retry.DefaultResMgmtOpts), resmgmt.WithOrdererEndpoint(setup.OrdererID)); err != nil {
@@ -89,6 +87,16 @@ func (setup *FabricSetup) Initialize() error {
 
 	logger.Info("Initialization Successful")
 	setup.initialized = true
+	return nil
+}
+
+func creatChannel(setup *FabricSetup, adminIdentity msp.SigningIdentity) error {
+	req := resmgmt.SaveChannelRequest{ChannelID: setup.ChannelID, ChannelConfigPath: setup.ChannelConfig, SigningIdentities: []msp.SigningIdentity{adminIdentity}}
+	txID, err := setup.admin.SaveChannel(req, resmgmt.WithOrdererEndpoint(setup.OrdererID))
+	if err != nil || txID.TransactionID == "" {
+		return errors.WithMessage(err, "failed to save channel")
+	}
+	logger.Info("Channel created")
 	return nil
 }
 

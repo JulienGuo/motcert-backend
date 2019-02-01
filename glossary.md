@@ -39,7 +39,8 @@
 摆值重复性，标准差，BPN：bpnStDeviation   
 整机准确性，摆值差值，BPN：bpnComStDeviation   
 整机准确性校准结果不确定度描述：comCalibUncertainty   
-录入日期：createDate   
+最新修改日期：updateDate   
 证书类型：certType   
-是否完成：isCompleted   
+是否已完成：isCompleted   
 是否公开：isOpen   
+是否已删除：isDeleted

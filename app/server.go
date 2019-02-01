@@ -106,7 +106,7 @@ func setFabricSdk() {
 		// Chaincode parameters
 		ChainCodeID:     "motcert-cc1",
 		ChaincodeGoPath: os.Getenv("GOPATH"),
-		ChaincodePath:   "gitlab.chainnova.com/motcert-backend/chaincode/",
+		ChaincodePath:   "gitlab.chainnova.com/motcert-backend/app/chaincode/",
 		OrgAdmin:        "Admin",
 		OrgName:         "org1",
 		ConfigFile:      "../config.yaml",

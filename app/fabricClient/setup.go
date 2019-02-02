@@ -38,7 +38,7 @@ type FabricSetup struct {
 }
 
 // Initialize reads the configuration file and sets up the client, chain and event hub
-func (setup *FabricSetup) Initialize(hasChannel bool) error {
+func (setup *FabricSetup) Initialize(hasChannel bool, hasData bool) error {
 
 	// Add parameters for the initialization
 	if setup.initialized {
@@ -79,6 +79,9 @@ func (setup *FabricSetup) Initialize(hasChannel bool) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if !hasData {
 		// Make admin user join the previously created channel
 		if err = setup.admin.JoinChannel(setup.ChannelID, resmgmt.WithRetry(retry.DefaultResMgmtOpts), resmgmt.WithOrdererEndpoint(setup.OrdererID)); err != nil {
 			return errors.WithMessage(err, "failed to make admin join channel")

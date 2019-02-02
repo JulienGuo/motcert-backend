@@ -26,16 +26,27 @@ var (
 		Short: "Starts the app.",
 		Long:  `Starts a app that interacts with the network.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setFabricSdk(false)
+			setFabricSdk(false, false)
 			return appService(args)
 		},
 	}
+
+	reloadStartCmd = &cobra.Command{
+		Use:   "reload",
+		Short: "reload the app",
+		Long:  "reload a app that interacts with the network",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			setFabricSdk(true, false)
+			return appService(args)
+		},
+	}
+
 	updateStartCmd = &cobra.Command{
 		Use:   "update",
 		Short: "update the app",
 		Long:  "update a app that interacts with the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			setFabricSdk(true)
+			setFabricSdk(true, true)
 			return appService(args)
 		},
 	}
@@ -81,6 +92,7 @@ func main() {
 	mainFlags.BoolVarP(&versionFlag, "version", "v", false, "Display current version")
 	mainCmd.AddCommand(VersionCmd())
 	mainCmd.AddCommand(appStartCmd)
+	mainCmd.AddCommand(reloadStartCmd)
 	mainCmd.AddCommand(updateStartCmd)
 	mainCmd.AddCommand(testCmd())
 	runtime.GOMAXPROCS(viper.GetInt("app.gomaxprocs"))
@@ -94,7 +106,7 @@ func main() {
 	logger.Info("Exiting.....")
 }
 
-func setFabricSdk(hasChannel bool) {
+func setFabricSdk(hasChannel bool, hasData bool) {
 	// Definition of the Fabric SDK properties
 	FabricSetupEntity = &fabricClient.FabricSetup{
 		// Network parameters
@@ -117,7 +129,7 @@ func setFabricSdk(hasChannel bool) {
 	}
 
 	// Initialization of the Fabric SDK from the previously set properties
-	err := FabricSetupEntity.Initialize(hasChannel)
+	err := FabricSetupEntity.Initialize(hasChannel, hasData)
 	if err != nil {
 		logger.Errorf("Unable to initialize the Fabric SDK: %v\n", err)
 		return

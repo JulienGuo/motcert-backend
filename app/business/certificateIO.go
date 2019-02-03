@@ -40,7 +40,7 @@ type Certificate struct {
 	IsCompleted         bool   `protobuf:"bytes,14,opt,name=isCompleted" json:"isCompleted"`                 //是否完成
 	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
 	IsDeleted           bool   `protobuf:"bytes,16,opt,name=isDeleted" json:"isDeleted"`                     //是否删除
-	CreateDate          string `protobuf:"bytes,17,opt,name=createDate" json:"createDate"`                   //创建日期
+	UpdateDate          string `protobuf:"bytes,17,opt,name=updateDate" json:"updateDate"`                   //最新修改日期
 }
 
 type Status struct {
@@ -301,3 +301,4 @@ func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSi
 	}
 	return &listInter, nil, http.StatusOK
 }
+

@@ -24,7 +24,8 @@ type Certificate struct {
 	SuggestNextCaliDate string `protobuf:"bytes,13,opt,name=suggestNextCaliDate" json:"suggestNextCaliDate"` //建议下次校准日期
 	IsCompleted         bool   `protobuf:"bytes,14,opt,name=isCompleted" json:"isCompleted"`                 //是否完成
 	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
-	CreateDate          string `protobuf:"bytes,16,opt,name=createDate" json:"createDate"`                   //创建日期
+	IsDeleted           bool   `protobuf:"bytes,16,opt,name=isDeleted" json:"isDeleted"`                     //是否删除
+	UpdateDate          string `protobuf:"bytes,17,opt,name=updateDate" json:"updateDate"`                   //最新修改日期
 }
 
 type ListInternal struct {

@@ -3,7 +3,6 @@ package business
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/op/go-logging"
 	"gitlab.chainnova.com/motcert-backend/app/fabricClient"
 	"net/http"
@@ -163,7 +162,6 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", true, true, false)
 
 	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":true},{\"isCompleted\": true},{\"isDeleted\": false}]}}"
-	queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v}}", true)
 
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
@@ -181,9 +179,8 @@ func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 
 	logger.Info("-----------------------------DeletedListRichQuery BEGIN---------------------")
 	var queryString string
-	//queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", false)
 	queryString = "{\"selector\":{\"isDeleted\": true}}"
-	queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", true)
+	//queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", true)
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {
@@ -200,7 +197,6 @@ func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bo
 	var queryString string
 	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", false, false, false)
 	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":false},{\"isCompleted\": false},{\"isDeleted\": false}]}}"
-	queryString = fmt.Sprintf("{\"selector\":{\"isCompleted\":%v}}", false)
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {

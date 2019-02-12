@@ -20,7 +20,7 @@ env-up:
 env-down:
 	@echo "Stop environment ..."
 	@echo "Copy CouchDB First !"
-	@exit 1
+#	@exit 1
 	@cd fixtures && docker-compose down
 	@echo "Environment down"
 
@@ -33,7 +33,7 @@ run:
 clean: env-down
 	@echo "Clean up ..."
 	@rm -rf ~/motcert-network-backup
-	@mv ~/motcert-network ~/motcert-network-backup
+	@cp -rf ~/motcert-network ~/motcert-network-backup
 	@rm -rf /tmp/motcert-* ./app/app
 	@docker rm -f -v `docker ps -a --no-trunc | grep "motcert" | cut -d ' ' -f 1` 2>/dev/null || true
 	@docker rmi `docker images --no-trunc | grep "motcert" | cut -d ' ' -f 1` 2>/dev/null || true

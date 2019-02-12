@@ -6,6 +6,7 @@ import (
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
 	"strconv"
+	"time"
 )
 
 type Certificate struct {
@@ -91,6 +92,18 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 	if err != nil {
 		return shim.Error(err.Error())
 	}
+
+	format := "2006-01-02"
+	now := time.Now()
+
+	local, err := time.LoadLocation("PRC")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(now.In(local).Format(format))
+
+	certificate.UpdateDate = now.In(local).Format(format)
 
 	certificateReqByte, err := json.Marshal(certificate)
 	if err != nil {

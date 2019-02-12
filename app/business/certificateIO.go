@@ -139,11 +139,14 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 			continue
 		}
 
+		if cert == nil {
+			continue
+		}
 		certificate := cert.(Certificate)
 
 		certificate.IsDeleted = statuses[i].IsDeleted
 
-		nerCert, err := json.Marshal(cert)
+		nerCert, err := json.Marshal(certificate)
 
 		_, err, _ = CertificateIn(setup, nerCert)
 		if err != nil {
@@ -297,4 +300,3 @@ func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSi
 	}
 	return &listInter, nil, http.StatusOK
 }
-

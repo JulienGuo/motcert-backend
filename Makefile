@@ -19,6 +19,8 @@ env-up:
 
 env-down:
 	@echo "Stop environment ..."
+	@echo "Copy CouchDB First !"
+	@exit 1
 	@cd fixtures && docker-compose down
 	@echo "Environment down"
 

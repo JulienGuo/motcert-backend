@@ -6,12 +6,17 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/gocraft/web"
 	"github.com/spf13/viper"
 	"gitlab.chainnova.com/motcert-backend/app/business"
 	"gitlab.chainnova.com/motcert-backend/app/session"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -56,6 +61,7 @@ func buildRouter() *web.Router {
 	app := router.Subrouter(motCertAPP{}, "/v1/")
 	app.Post("login", (*motCertAPP).postLogin)
 	app.Post("certificate", (*motCertAPP).postCertificate)
+	app.Post("uploadFile", (*motCertAPP).postUploadFile)
 	app.Get("certificate/:certId", (*motCertAPP).getCertificate)
 	app.Post("certificate/openList", (*motCertAPP).getOpenList)
 	app.Post("certificate/deletedList", (*motCertAPP).getDeletedList)
@@ -266,6 +272,73 @@ func (s *motCertAPP) postCertificate(rw web.ResponseWriter, req *web.Request) {
 	return
 }
 
+func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("postUploadFile start")
+	encoder := json.NewEncoder(rw)
+	var result Result
+	if isLogin(rw, req) {
+		err := req.ParseMultipartForm(10 << 20)
+		if err != nil {
+			deal4xx(result, encoder, err, rw, 400)
+			return
+		}
+
+		//data, err, code := business.CertificateIn(FabricSetupEntity, body)
+		//if err != nil {
+		//	deal4xx(result, encoder, err, rw, code)
+		//	return
+		//}
+
+		file, handler, err := req.FormFile("certFile")
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer closeFile(file)
+
+		logger.Infof("%v", handler.Header)
+		f, err := os.OpenFile("../files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		defer closeFile(f)
+
+		written, err := io.Copy(f, file)
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		//result.ResultCode = code
+		//rw.WriteHeader(code)
+		//result.Data = data
+
+		result.ResultCode = 200
+		rw.WriteHeader(200)
+		result.Data = nil
+
+		str := strconv.FormatInt(written, 10)
+		result.Message = "uploaded=" + str
+	} else {
+		result.ResultCode = http.StatusUnauthorized
+		result.Message = "Should login"
+	}
+
+	if err := encoder.Encode(result); err != nil {
+		logger.Fatalf("serializing result: %v", err)
+	}
+	logger.Infof("postUploadFile end")
+	return
+}
+
+func closeFile(f multipart.File) {
+	err := f.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
 func (s *motCertAPP) getCertificate(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getCertificate start")
 	encoder := json.NewEncoder(rw)
@@ -300,7 +373,7 @@ func (s *motCertAPP) getOpenList(rw web.ResponseWriter, req *web.Request) {
 	}
 
 	data, err, code := business.OpenListRichQuery(FabricSetupEntity, body, isLogin(rw, req))
-		if err != nil {
+	if err != nil {
 		deal4xx(result, encoder, err, rw, code)
 		return
 	}

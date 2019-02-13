@@ -43,4 +43,5 @@
 证书类型：certType   
 是否已完成：isCompleted   
 是否公开：isOpen   
-是否已删除：isDeleted
+是否已删除：isDeleted   
+是否已经上传pdf文件：hasUpload

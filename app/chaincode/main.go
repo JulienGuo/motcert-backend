@@ -27,6 +27,12 @@ type Certificate struct {
 	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
 	IsDeleted           bool   `protobuf:"bytes,16,opt,name=isDeleted" json:"isDeleted"`                     //是否删除
 	UpdateDate          string `protobuf:"bytes,17,opt,name=updateDate" json:"updateDate"`                   //最新修改日期
+	HasUpload           bool   `protobuf:"bytes,18,opt,name=hasUpload" json:"hasUpload"`                    //是否已上传pdf文件
+}
+
+type FileStruct struct {
+	CertId    string `protobuf:"bytes,1,req,name=certId" json:"certId"`      //证书编号
+	CertFile  []byte `protobuf:"bytes,2,req,name=certFile" json:"certFile"`  //证书pdf文件
 }
 
 type ListInternal struct {
@@ -62,6 +68,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	switch function {
 	case "postCertificate":
 		return t.postCertificate(stub, args)
+	case "postUploadFile":
+		return t.postUploadFile(stub, args)
 	case "getCertificate":
 		return t.getCertificate(stub, args)
 	case "queryList":
@@ -115,6 +123,40 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 	}
 
 	err = stub.SetEvent("postCertificateEvent", []byte{})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	return shim.Success(nil)
+}
+
+func (t *SimpleChaincode) postUploadFile(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Printf("postUploadFile=%v\n", args)
+
+	if len(args) != 1 {
+		return shim.Error("Incorrect number of arguments.")
+	}
+
+	body := []byte(args[0])
+	var fs FileStruct
+	err := json.Unmarshal(body, &fs)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	fmt.Printf("postUploadFile: '%v'\n", fs)
+
+	attributes := []string{fs.CertId}
+	key, err := stub.CreateCompositeKey("certFile", attributes)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.PutState(key, body)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	err = stub.SetEvent("postUploadFileEvent", []byte{})
 	if err != nil {
 		return shim.Error(err.Error())
 	}

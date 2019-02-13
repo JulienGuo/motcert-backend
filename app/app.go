@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/gocraft/web"
 	"github.com/spf13/viper"
 	"gitlab.chainnova.com/motcert-backend/app/business"
@@ -283,15 +282,9 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		//data, err, code := business.CertificateIn(FabricSetupEntity, body)
-		//if err != nil {
-		//	deal4xx(result, encoder, err, rw, code)
-		//	return
-		//}
-
 		file, handler, err := req.FormFile("certFile")
 		if err != nil {
-			logger.Error(err)
+			deal4xx(result, encoder, err, rw, http.StatusBadRequest)
 			return
 		}
 		defer closeFile(file)
@@ -299,23 +292,28 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 		logger.Infof("%v", handler.Header)
 		f, err := os.OpenFile("../files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			logger.Error(err)
+			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 			return
 		}
 		defer closeFile(f)
 
 		written, err := io.Copy(f, file)
 		if err != nil {
-			logger.Error(err)
+			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 			return
 		}
-		//result.ResultCode = code
-		//rw.WriteHeader(code)
-		//result.Data = data
 
-		result.ResultCode = 200
-		rw.WriteHeader(200)
-		result.Data = nil
+		certId:=req.MultipartForm.Value["certId"][0]
+		certFilePath:="../files/"+handler.Filename
+
+		data, err, code := business.UploadFile(FabricSetupEntity, certId,certFilePath)
+		if err != nil {
+			deal4xx(result, encoder, err, rw, code)
+			return
+		}
+		result.ResultCode = code
+		rw.WriteHeader(code)
+		result.Data = data
 
 		str := strconv.FormatInt(written, 10)
 		result.Message = "uploaded=" + str
@@ -334,7 +332,7 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 func closeFile(f multipart.File) {
 	err := f.Close()
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		return
 	}
 }

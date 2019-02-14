@@ -48,6 +48,7 @@ type Certificate struct {
 type FileStruct struct {
 	CertId   string `protobuf:"bytes,1,req,name=certId" json:"certId"`     //证书编号
 	CertFile []byte `protobuf:"bytes,2,req,name=certFile" json:"certFile"` //证书pdf文件
+	FileName string `protobuf:"bytes,3,req,name=fileName" json:"fileName"` //文件名
 }
 
 type Status struct {

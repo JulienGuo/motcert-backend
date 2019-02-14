@@ -156,7 +156,7 @@ func (t *SimpleChaincode) postUploadFile(stub shim.ChaincodeStubInterface, args 
 		return shim.Error(err.Error())
 	}
 
-	err = stub.SetEvent("postUploadFileEvent", []byte{})
+	err = stub.SetEvent("postUploadFileEvent"+fs.CertId, []byte{})
 	if err != nil {
 		return shim.Error(err.Error())
 	}

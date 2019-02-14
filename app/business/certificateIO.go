@@ -42,12 +42,12 @@ type Certificate struct {
 	IsOpen              bool   `protobuf:"bytes,15,opt,name=isOpen" json:"isOpen"`                           //是否公开
 	IsDeleted           bool   `protobuf:"bytes,16,opt,name=isDeleted" json:"isDeleted"`                     //是否删除
 	UpdateDate          string `protobuf:"bytes,17,opt,name=updateDate" json:"updateDate"`                   //最新修改日期
-	HasUpload           bool   `protobuf:"bytes,18,opt,name=hasUpload" json:"hasUpload"`                    //是否已上传pdf文件
+	HasUpload           bool   `protobuf:"bytes,18,opt,name=hasUpload" json:"hasUpload"`                     //是否已上传pdf文件
 }
 
 type FileStruct struct {
-	CertId    string `protobuf:"bytes,1,req,name=certId" json:"certId"`      //证书编号
-	CertFile  []byte `protobuf:"bytes,2,req,name=certFile" json:"certFile"`  //证书pdf文件
+	CertId   string `protobuf:"bytes,1,req,name=certId" json:"certId"`     //证书编号
+	CertFile []byte `protobuf:"bytes,2,req,name=certFile" json:"certFile"` //证书pdf文件
 }
 
 type Status struct {
@@ -143,24 +143,30 @@ func UploadFile(setup *fabricClient.FabricSetup, certId, certFilePath string) (i
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
-	fileSize:= fileInfo.Size()
+	fileSize := fileInfo.Size()
 	buf := make([]byte, fileSize)
 	n, err := certf.Read(buf)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
 	var txid string
-	if int64(n)==fileSize {
-		fileStruct:=FileStruct{
-			CertId:certId,
-			CertFile:buf,
+	if int64(n) == fileSize {
+
+		fileType := http.DetectContentType(buf)
+		if fileType != "application/pdf" {
+			return nil, err, http.StatusBadRequest
 		}
 
-		fs,err:= json.Marshal(fileStruct)
+		fileStruct := FileStruct{
+			CertId:   certId,
+			CertFile: buf,
+		}
+
+		fs, err := json.Marshal(fileStruct)
 
 		args := []string{string(fs)}
 
-		eventID := "postUploadFileEvent"
+		eventID := "postUploadFileEvent"+certId
 		txid, err = setup.Execute(eventID, "postUploadFile", args)
 		if err != nil {
 			return nil, err, http.StatusNotImplemented

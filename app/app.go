@@ -288,9 +288,9 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 		defer closeFile(file)
-
-		logger.Infof("%v", handler.Header)
-		f, err := os.OpenFile("../files/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		certId := req.MultipartForm.Value["certId"][0]
+		fileName := "../files/" + certId + handler.Filename
+		f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 			return
@@ -303,10 +303,7 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		certId:=req.MultipartForm.Value["certId"][0]
-		certFilePath:="../files/"+handler.Filename
-
-		data, err, code := business.UploadFile(FabricSetupEntity, certId,certFilePath)
+		data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, code)
 			return

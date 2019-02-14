@@ -17,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -292,7 +293,8 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 		}
 		defer closeFile(file)
 		certId := req.MultipartForm.Value["certId"][0]
-		fileName := "../files/" + certId + handler.Filename
+		fileName := "./tempUploadFiles/" + certId + handler.Filename
+		deleteFileOnDisk(fileName)
 		f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
@@ -315,6 +317,20 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 		rw.WriteHeader(code)
 		result.Data = data
 
+		fileName2 := "../files/" + certId + handler.Filename
+		deleteFileOnDisk(fileName2)
+		f2, err := os.OpenFile(fileName2, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
+			return
+		}
+		defer closeFile(f2)
+
+		err = os.Rename(fileName, fileName2)
+		if err != nil {
+			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
+		}
+
 		str := strconv.FormatInt(written, 10)
 		result.Message = "uploaded=" + str
 	} else {
@@ -328,6 +344,38 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("postUploadFile end")
 	return
 }
+
+func deleteFileOnDisk(localPath string) {
+	logger.Debugf("remove file: %s", localPath)
+	if err := os.Remove(localPath); err != nil {
+		logger.Error(err)
+	}
+	dirsList := make([]string, 0, 0)
+	for dir := path.Dir(localPath); dir != "../tempUploadFiles" && len(dir) > len("../tempUploadFiles"); dir = path.Dir(dir) {
+		dirsList = append(dirsList, dir)
+	}
+	sort.StringSlice(dirsList).Sort()
+	for i := len(dirsList) - 1; i >= 0; i-- {
+		f, err := os.Open(dirsList[i])
+		if err != nil {
+			logger.Error(err)
+		}
+		fs, err2 := f.Readdirnames(1)
+		if err2 == io.EOF && (fs == nil || len(fs) == 0) {
+			closeFile(f)
+			logger.Debugf("remove dir: %s", dirsList[i])
+			if err := os.Remove(dirsList[i]); err != nil {
+				logger.Error(err)
+			}
+			continue
+		} else if err2 != nil {
+			logger.Error(err2)
+		}
+		closeFile(f)
+	}
+
+}
+
 
 func (s *motCertAPP) getDownloadFile(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getDownloadFile start")
@@ -357,6 +405,10 @@ func (s *motCertAPP) getDownloadFile(rw web.ResponseWriter, req *web.Request) {
 			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 			return
 		}
+
+		rw.CloseNotify()
+
+
 
 		//data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
 		//if err != nil {

@@ -167,7 +167,7 @@ func UploadFile(setup *fabricClient.FabricSetup, certId, certFilePath string) (i
 
 		args := []string{string(fs)}
 
-		eventID := "postUploadFileEvent"+certId
+		eventID := "postUploadFileEvent" + certId
 		txid, err = setup.Execute(eventID, "postUploadFile", args)
 		if err != nil {
 			return nil, err, http.StatusNotImplemented

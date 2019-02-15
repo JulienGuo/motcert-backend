@@ -3,6 +3,7 @@ package business
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/op/go-logging"
 	"gitlab.chainnova.com/motcert-backend/app/fabricClient"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"path"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 var logger = logging.MustGetLogger("Motcert.business")
@@ -326,9 +328,8 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 
 	logger.Info("-----------------------------OpenListRichQuery BEGIN---------------------")
 	var queryString string
-	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", true, true, false)
 
-	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":true},{\"isCompleted\": true},{\"isDeleted\": false}]}}"
+	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":true},{\"isCompleted\": true},{\"isDeleted\": false}"
 
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
@@ -338,21 +339,45 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 
 	queryConditions.IsOpen = true
 
+	queryString = editQueryString(queryString, &queryConditions)
+
 	logger.Info("-----------------------------OpenListRichQuery END---------------------")
 	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &openListBookmarks)
+}
+
+func editQueryString(queryString string, queryConditions *QueryConditions) string {
+	queryString += editAndString(queryConditions.CertType, "certType")
+	queryString += editAndString(queryConditions.CertId, "certId")
+	queryString += editAndString(queryConditions.EntrustOrg, "entrustOrg")
+	queryString += editAndString(queryConditions.InstrumentName, "instrumentName")
+
+	queryString += "]}}"
+
+	return queryString
+}
+
+func editAndString(value string, str string) string {
+	value = strings.Replace(value, " ", "", -1)
+	value = strings.Replace(value, "\n", "", -1)
+	queryStr := ""
+	if value != "" {
+		queryStr = fmt.Sprintf(",{\""+str+"\": \"%v\"}", value)
+	}
+	return queryStr
 }
 
 func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
 
 	logger.Info("-----------------------------DeletedListRichQuery BEGIN---------------------")
 	var queryString string
-	queryString = "{\"selector\":{\"isDeleted\": true}}"
-	//queryString = fmt.Sprintf("{\"selector\":{\"isDeleted\":%v}}", true)
+	queryString = "{\"selector\":{\"$and\":[{\"isDeleted\": true}"
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {
 		return err.Error(), err, http.StatusBadRequest
 	}
+
+	queryString = editQueryString(queryString, &queryConditions)
 
 	logger.Info("-----------------------------DeletedListRichQuery END---------------------")
 	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &deletedListBookmarks)
@@ -362,13 +387,15 @@ func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bo
 
 	logger.Info("-----------------------------DraftListRichQuery BEGIN---------------------")
 	var queryString string
-	//queryString = fmt.Sprintf("{\"selector\":{\"isOpen\":%v,\"isCompleted\":%v,\"isDeleted\":%v}}", false, false, false)
-	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":false},{\"isCompleted\": false},{\"isDeleted\": false}]}}"
+	queryString = "{\"selector\":{\"$and\":[{\"isOpen\":false},{\"isCompleted\": false},{\"isDeleted\": false}"
 	var queryConditions QueryConditions
 	err := json.Unmarshal(body, &queryConditions)
 	if err != nil {
 		return err.Error(), err, http.StatusBadRequest
 	}
+
+	queryString = editQueryString(queryString, &queryConditions)
+
 	logger.Info("-----------------------------DraftListRichQuery END---------------------")
 	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &draftListBookmarks)
 }

@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"github.com/gocraft/web"
 	"github.com/spf13/viper"
 	"gitlab.chainnova.com/motcert-backend/app/business"
@@ -380,60 +379,77 @@ func deleteFileOnDisk(localPath string) {
 
 func (s *motCertAPP) getDownloadFile(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getDownloadFile start")
-	encoder := json.NewEncoder(rw)
-	var result Result
-
+	//encoder := json.NewEncoder(rw)
+	//var result Result
+	logger.Infof("getDownloadFile start 2")
 	//defer closeFile(file)
 	//certId := req.MultipartForm.Value["certId"][0]
 	//fileName := "../files/" + certId + handler.Filename
 	fileFullPath := "../files/" + "GDQ2018-223-001SCAN0021.pdf"
 	file, err := os.Open(fileFullPath)
+
 	if err != nil {
-		deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
+		//deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 		return
 	}
+	logger.Infof("getDownloadFile start 3")
 	defer closeFile(file)
 
 	fileName := path.Base(fileFullPath)
 	fileName = url.QueryEscape(fileName) // 防止中文乱码
-	rw.Header().Add("Content-Type", "application/octet-stream")
-	rw.Header().Add("content-disposition", "attachment; filename=\""+fileName+"\"")
-	_, error := io.Copy(rw, file)
-	if error != nil {
-		deal4xx(result, encoder, err, rw, http.StatusInternalServerError);
+
+	rw.Header().Del("Content-Type")
+	rw.Header().Add("Content-Type", "application/pdf")
+	rw.Header().Add("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+	fileInfo, err := os.Stat(fileFullPath)
+	if err != nil {
+		logger.Error(err)
 		return
 	}
+
+	rw.Header().Add("Content-Length",strconv.FormatInt(fileInfo.Size(),10))
+	_, error := io.Copy(rw, file)
+	if error != nil {
+		rw.WriteHeader(400)
+		//deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
+		return
+	} else {
+		rw.WriteHeader(200)
+	}
+	logger.Infof("getDownloadFile start 4")
 
 	select {
 	case connectEnd := <-rw.CloseNotify():
 		logger.Info("copy end")
 		if connectEnd {
-			deal4xx(result, encoder, errors.New("client connection has gone away 1"), rw, http.StatusBadRequest)
-			return
+			logger.Info("connectEnd == true")
+			//deal4xx(result, encoder, errors.New("client connection has gone away 1"), rw, http.StatusBadRequest)
+			//return
 		} else {
-			deal4xx(result, encoder, errors.New("client connection has gone away 2"), rw, http.StatusBadRequest)
-			return
+			logger.Info("connectEnd == false")
+			//deal4xx(result, encoder, errors.New("client connection has gone away 2"), rw, http.StatusBadRequest)
+			//return
 		}
-	case <-time.After(time.Second * 120):
+	case <-time.After(time.Second * 4):
 		logger.Info("copy timeout")
 	}
-
-	time.Sleep(10000)
+	logger.Infof("getDownloadFile start 5")
+	//time.Sleep(10000)
 
 	//data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
 	//if err != nil {
 	//	deal4xx(result, encoder, err, rw, code)
 	//	return
 	//}
-	result.ResultCode = 200
-	rw.WriteHeader(200)
-	result.Data = nil
+	//result.ResultCode = 200
+	//rw.WriteHeader(200)
+	//result.Data = nil
+	//logger.Infof("getDownloadFile start 6")
+	//result.Message = "download"
 
-	result.Message = "download"
-
-	if err := encoder.Encode(result); err != nil {
-		logger.Fatalf("serializing result: %v", err)
-	}
+	//if err := encoder.Encode(result); err != nil {
+	//	logger.Fatalf("serializing result: %v", err)
+	//}
 	logger.Infof("getDownloadFile end")
 	return
 }

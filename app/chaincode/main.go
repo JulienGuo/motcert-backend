@@ -122,7 +122,7 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 		return shim.Error(err.Error())
 	}
 
-	err = stub.SetEvent("postCertificateEvent", []byte{})
+	err = stub.SetEvent("postCertificateEvent"+certificate.CertId, []byte{})
 	if err != nil {
 		return shim.Error(err.Error())
 	}

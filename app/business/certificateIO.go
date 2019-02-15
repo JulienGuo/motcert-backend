@@ -96,7 +96,7 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	logger.Infof("postCertificate: '%s'.\n", certificate)
 	args := []string{string(body)}
 
-	eventID := "postCertificateEvent"
+	eventID := "postCertificateEvent"+certificate.CertId
 	data, err := setup.Execute(eventID, "postCertificate", args)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented

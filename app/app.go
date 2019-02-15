@@ -408,12 +408,17 @@ func (s *motCertAPP) getDownloadFile(rw web.ResponseWriter, req *web.Request) {
 	case connectEnd := <-rw.CloseNotify():
 		logger.Info("copy end")
 		if connectEnd {
-			deal4xx(result, encoder, errors.New("client connection has gone away"), rw, http.StatusBadRequest)
+			deal4xx(result, encoder, errors.New("client connection has gone away 1"), rw, http.StatusBadRequest)
+			return
+		} else {
+			deal4xx(result, encoder, errors.New("client connection has gone away 2"), rw, http.StatusBadRequest)
 			return
 		}
 	case <-time.After(time.Second * 120):
 		logger.Info("copy timeout")
 	}
+
+	time.Sleep(10000)
 
 	//data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
 	//if err != nil {

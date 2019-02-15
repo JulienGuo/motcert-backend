@@ -1,0 +1,16 @@
+{
+  "type": "json",
+  "ddoc": "indexSortDoc",
+  "name": "indexSort",
+  "index": {
+    "fields": [
+      {
+        "updateDate": "desc"
+      },
+      {
+        "certId": "desc"
+      }
+    ],
+    "partial_filter_selector": {}
+  }
+}

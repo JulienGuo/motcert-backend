@@ -346,22 +346,38 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 }
 
 func editQueryString(queryString string, queryConditions *QueryConditions) string {
-	queryString += editAndString(queryConditions.CertType, "certType")
-	queryString += editAndString(queryConditions.CertId, "certId")
-	queryString += editAndString(queryConditions.EntrustOrg, "entrustOrg")
-	queryString += editAndString(queryConditions.InstrumentName, "instrumentName")
 
-	queryString += "]}}"
+	queryString += editEqString(queryConditions.CertType, "certType")
+	queryString += editEqString(queryConditions.CertId, "certId")
+	queryString += editEqString(queryConditions.EntrustOrg, "entrustOrg")
+	queryString += editEqString(queryConditions.InstrumentName, "instrumentName")
+
+	queryString += editCoString(queryConditions.StartCreateDate, "updateDate", "$gte")
+	queryString += editCoString(queryConditions.EndCreateDate, "updateDate", "$lte")
+	queryString += editCoString(queryConditions.StartCalibDate, "calibrateDate", "$gte")
+	queryString += editCoString(queryConditions.EndCalibDate, "calibrateDate", "$lte")
+
+	queryString += "]},\"sort\": [{\"updateDate\": \"desc\"},{\"certId\": \"desc\"}],\"use_index\": [\"indexSortDoc\",\"indexSort\"]}"
 
 	return queryString
 }
 
-func editAndString(value string, str string) string {
+func editEqString(value string, str string) string {
 	value = strings.Replace(value, " ", "", -1)
 	value = strings.Replace(value, "\n", "", -1)
 	queryStr := ""
 	if value != "" {
 		queryStr = fmt.Sprintf(",{\""+str+"\": \"%v\"}", value)
+	}
+	return queryStr
+}
+
+func editCoString(value string, str string, comStr string) string {
+	value = strings.Replace(value, " ", "", -1)
+	value = strings.Replace(value, "\n", "", -1)
+	queryStr := ""
+	if value != "" {
+		queryStr = fmt.Sprintf(",{\""+str+"\": {\""+comStr+"\":\"%v\"}}", value)
 	}
 	return queryStr
 }

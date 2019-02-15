@@ -14,13 +14,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"net/url"
-	"os"
-	"path"
-	"sort"
-	"strconv"
 	"strings"
-	"time"
 )
 
 type User struct {
@@ -287,29 +281,13 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 			return
 		}
 
-		file, handler, err := req.FormFile("certFile")
+		file, _, err := req.FormFile("certFile")
 		if err != nil {
 			deal4xx(result, encoder, err, rw, http.StatusBadRequest)
 			return
 		}
-		defer closeFile(file)
 		certId := req.MultipartForm.Value["certId"][0]
-		fileName := "./tempUploadFiles/" + certId + handler.Filename
-		deleteFileOnDisk(fileName)
-		f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
-			return
-		}
-		defer closeFile(f)
-
-		written, err := io.Copy(f, file)
-		if err != nil {
-			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
-			return
-		}
-
-		data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
+		data, err, code := business.UploadFile(FabricSetupEntity, certId, &file)
 		if err != nil {
 			deal4xx(result, encoder, err, rw, code)
 			return
@@ -317,23 +295,6 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 		result.ResultCode = code
 		rw.WriteHeader(code)
 		result.Data = data
-
-		fileName2 := "../files/" + certId + handler.Filename
-		deleteFileOnDisk(fileName2)
-		f2, err := os.OpenFile(fileName2, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
-			return
-		}
-		defer closeFile(f2)
-
-		err = os.Rename(fileName, fileName2)
-		if err != nil {
-			deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
-		}
-
-		str := strconv.FormatInt(written, 10)
-		result.Message = "uploaded=" + str
 	} else {
 		result.ResultCode = http.StatusUnauthorized
 		result.Message = "Should login"
@@ -346,133 +307,31 @@ func (s *motCertAPP) postUploadFile(rw web.ResponseWriter, req *web.Request) {
 	return
 }
 
-func deleteFileOnDisk(localPath string) {
-	logger.Debugf("remove file: %s", localPath)
-	if err := os.Remove(localPath); err != nil {
-		logger.Error(err)
-	}
-	dirsList := make([]string, 0, 0)
-	for dir := path.Dir(localPath); dir != "../tempUploadFiles" && len(dir) > len("../tempUploadFiles"); dir = path.Dir(dir) {
-		dirsList = append(dirsList, dir)
-	}
-	sort.StringSlice(dirsList).Sort()
-	for i := len(dirsList) - 1; i >= 0; i-- {
-		f, err := os.Open(dirsList[i])
-		if err != nil {
-			logger.Error(err)
-		}
-		fs, err2 := f.Readdirnames(1)
-		if err2 == io.EOF && (fs == nil || len(fs) == 0) {
-			closeFile(f)
-			logger.Debugf("remove dir: %s", dirsList[i])
-			if err := os.Remove(dirsList[i]); err != nil {
-				logger.Error(err)
-			}
-			continue
-		} else if err2 != nil {
-			logger.Error(err2)
-		}
-		closeFile(f)
-	}
-
-}
-
 func (s *motCertAPP) getDownloadFile(rw web.ResponseWriter, req *web.Request) {
 	logger.Infof("getDownloadFile start")
-	//encoder := json.NewEncoder(rw)
-	//var result Result
-	logger.Infof("getDownloadFile start 2")
-	//defer closeFile(file)
-	//certId := req.MultipartForm.Value["certId"][0]
-	//fileName := "../files/" + certId + handler.Filename
-	fileFullPath := "../files/" + "GDQ2018-223-001SCAN0021.pdf"
-	file, err := os.Open(fileFullPath)
 
+	fileName, fileSize, file, err, code := business.DownloadFile(FabricSetupEntity, &req.PathParams)
 	if err != nil {
-		//deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
+		rw.WriteHeader(code)
 		return
 	}
-	logger.Infof("getDownloadFile start 3")
-	defer closeFile(file)
-
-	fileName := path.Base(fileFullPath)
-	fileName = url.QueryEscape(fileName) // 防止中文乱码
-
 	rw.Header().Del("Content-Type")
 	rw.Header().Add("Content-Type", "application/pdf")
 	rw.Header().Add("Content-Disposition", "attachment; filename=\""+fileName+"\"")
-	fileInfo, err := os.Stat(fileFullPath)
-	if err != nil {
-		logger.Error(err)
-		return
-	}
 
-	rw.Header().Add("Content-Length",strconv.FormatInt(fileInfo.Size(),10))
-	_, error := io.Copy(rw, file)
-	if error != nil {
+	rw.Header().Add("Content-Length", fileSize)
+	_, err = io.Copy(rw, file)
+	if err != nil {
 		rw.WriteHeader(400)
-		//deal4xx(result, encoder, err, rw, http.StatusInternalServerError)
 		return
 	} else {
 		rw.WriteHeader(200)
 	}
-	logger.Infof("getDownloadFile start 4")
+	defer closeFile(file)
 
-	select {
-	case connectEnd := <-rw.CloseNotify():
-		logger.Info("copy end")
-		if connectEnd {
-			logger.Info("connectEnd == true")
-			//deal4xx(result, encoder, errors.New("client connection has gone away 1"), rw, http.StatusBadRequest)
-			//return
-		} else {
-			logger.Info("connectEnd == false")
-			//deal4xx(result, encoder, errors.New("client connection has gone away 2"), rw, http.StatusBadRequest)
-			//return
-		}
-	case <-time.After(time.Second * 4):
-		logger.Info("copy timeout")
-	}
-	logger.Infof("getDownloadFile start 5")
-	//time.Sleep(10000)
-
-	//data, err, code := business.UploadFile(FabricSetupEntity, certId, fileName)
-	//if err != nil {
-	//	deal4xx(result, encoder, err, rw, code)
-	//	return
-	//}
-	//result.ResultCode = 200
-	//rw.WriteHeader(200)
-	//result.Data = nil
-	//logger.Infof("getDownloadFile start 6")
-	//result.Message = "download"
-
-	//if err := encoder.Encode(result); err != nil {
-	//	logger.Fatalf("serializing result: %v", err)
-	//}
 	logger.Infof("getDownloadFile end")
 	return
 }
-
-//func getDownloadFile(fileFullPath string, res *restful.Response) {
-//	file, err := os.Open(fileFullPath)
-//
-//	if err != nil {
-//		res.WriteEntity(_dto.ErrorDto{Err: err})
-//		return
-//	}
-//
-//	defer file.Close()
-//	fileName := path.Base(fileFullPath)
-//	fileName = url.QueryEscape(fileName) // 防止中文乱码
-//	res.AddHeader("Content-Type", "application/octet-stream")
-//	res.AddHeader("content-disposition", "attachment; filename=\""+fileName+"\"")
-//	_, error := io.Copy(res.ResponseWriter, file)
-//	if error != nil {
-//		res.WriteErrorString(http.StatusInternalServerError, err.Error())
-//		return
-//	}
-//}
 
 func closeFile(f multipart.File) {
 	err := f.Close()

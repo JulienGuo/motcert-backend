@@ -5,9 +5,13 @@ import (
 	"errors"
 	"github.com/op/go-logging"
 	"gitlab.chainnova.com/motcert-backend/app/fabricClient"
+	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
+	"sort"
 	"strconv"
 )
 
@@ -96,7 +100,7 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	logger.Infof("postCertificate: '%s'.\n", certificate)
 	args := []string{string(body)}
 
-	eventID := "postCertificateEvent"+certificate.CertId
+	eventID := "postCertificateEvent" + certificate.CertId
 	data, err := setup.Execute(eventID, "postCertificate", args)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
@@ -130,17 +134,31 @@ func CertificateOut(setup *fabricClient.FabricSetup, param *map[string]string) (
 	return certificate, nil, http.StatusOK
 }
 
-func UploadFile(setup *fabricClient.FabricSetup, certId, certFilePath string) (interface{}, error, int) {
+func UploadFile(setup *fabricClient.FabricSetup, certId string, file *multipart.File) (interface{}, error, int) {
 
 	logger.Info("-----------------------------UploadFile BEGIN---------------------")
 
-	certf, err := os.Open(certFilePath)
+	certFullPath := "./tempUploadFiles/" + certId + ".pdf"
+	deleteFileOnDisk(certFullPath)
+	f, err := os.OpenFile(certFullPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return nil, err, http.StatusInternalServerError
+	}
+	defer closeFile(f)
+	defer closeFile(*file)
+
+	_, err = io.Copy(f, *file)
+	if err != nil {
+		return nil, err, http.StatusInternalServerError
+	}
+
+	certf, err := os.Open(certFullPath)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
 
 	defer closeFile(certf)
-	fileInfo, err := os.Stat(certFilePath)
+	fileInfo, err := os.Stat(certFullPath)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
@@ -194,11 +212,52 @@ func UploadFile(setup *fabricClient.FabricSetup, certId, certFilePath string) (i
 		if err != nil {
 			return nil, err, http.StatusNotImplemented
 		}
+
+		certFullPath2 := "../files/" + certId + ".pdf"
+		deleteFileOnDisk(certFullPath2)
+		f2, err := os.OpenFile(certFullPath2, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			return nil, err, http.StatusInternalServerError
+		}
+		defer closeFile(f2)
+
+		err = os.Rename(certFullPath, certFullPath2)
+		if err != nil {
+			return nil, err, http.StatusInternalServerError
+		}
+
 	} else {
 		return nil, err, http.StatusNotImplemented
 	}
 	logger.Info("-----------------------------UploadFile END---------------------")
 	return txid, nil, http.StatusOK
+}
+
+func DownloadFile(setup *fabricClient.FabricSetup, param *map[string]string) (string, string, *os.File, error, int) {
+
+	logger.Info("-----------------------------DownloadFile BEGIN---------------------")
+
+	certId := make(map[string]string)
+	certId = *param
+	certIdValue := certId["certId"]
+	fileFullPath := "../files/" + certIdValue + ".pdf"
+	file, err := os.Open(fileFullPath)
+
+	if err != nil {
+		return "", "", nil, err, http.StatusInternalServerError
+	}
+
+	fileName := path.Base(fileFullPath)
+	fileName = url.QueryEscape(fileName) // 防止中文乱码
+
+	fileInfo, err := os.Stat(fileFullPath)
+	if err != nil {
+		return "", "", nil, err, http.StatusInternalServerError
+	}
+
+	fileSize := strconv.FormatInt(fileInfo.Size(), 10)
+
+	return fileName, fileSize, file, nil, http.StatusOK
 }
 
 func closeFile(f multipart.File) {
@@ -387,4 +446,34 @@ func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSi
 		return nil, err, http.StatusNotImplemented
 	}
 	return &listInter, nil, http.StatusOK
+}
+
+func deleteFileOnDisk(localPath string) {
+	logger.Debugf("remove file: %s", localPath)
+	if err := os.Remove(localPath); err != nil {
+		logger.Error(err)
+	}
+	dirsList := make([]string, 0, 0)
+	for dir := path.Dir(localPath); dir != "./tempUploadFiles" && len(dir) > len("./tempUploadFiles"); dir = path.Dir(dir) {
+		dirsList = append(dirsList, dir)
+	}
+	sort.StringSlice(dirsList).Sort()
+	for i := len(dirsList) - 1; i >= 0; i-- {
+		f, err := os.Open(dirsList[i])
+		if err != nil {
+			logger.Error(err)
+		}
+		fs, err2 := f.Readdirnames(1)
+		if err2 == io.EOF && (fs == nil || len(fs) == 0) {
+			closeFile(f)
+			logger.Debugf("remove dir: %s", dirsList[i])
+			if err := os.Remove(dirsList[i]); err != nil {
+				logger.Error(err)
+			}
+			continue
+		} else if err2 != nil {
+			logger.Error(err2)
+		}
+		closeFile(f)
+	}
 }

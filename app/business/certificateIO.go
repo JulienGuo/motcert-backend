@@ -253,7 +253,7 @@ func DownloadFile(setup *fabricClient.FabricSetup, param *map[string]string) (st
 		return "", "", nil, err, http.StatusNotImplemented
 	}
 	defer closeFile(f)
-	n, err := f.Write(fileStruct.CertFile)
+	_, err = f.Write(fileStruct.CertFile)
 	if err != nil {
 		return "", "", nil, err, http.StatusNotImplemented
 	}

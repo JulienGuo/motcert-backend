@@ -68,10 +68,12 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	switch function {
 	case "postCertificate":
 		return t.postCertificate(stub, args)
-	case "postUploadFile":
-		return t.postUploadFile(stub, args)
 	case "getCertificate":
 		return t.getCertificate(stub, args)
+	case "postUploadFile":
+		return t.postUploadFile(stub, args)
+	case "getDownloadFile":
+		return t.getDownloadFile(stub, args)
 	case "queryList":
 		return t.queryList(stub, args)
 	default:
@@ -129,6 +131,25 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 	return shim.Success(nil)
 }
 
+func (t *SimpleChaincode) getCertificate(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Printf("getCertificate=%v\n", args)
+
+	if len(args) != 1 {
+		return shim.Error("Incorrect number of arguments.")
+	}
+	key, err := stub.CreateCompositeKey("certId", []string{args[0]})
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	value, err := stub.GetState(key)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+
+	return shim.Success(value)
+}
+
 func (t *SimpleChaincode) postUploadFile(stub shim.ChaincodeStubInterface, args []string) pb.Response {
 	fmt.Printf("postUploadFile=%v\n", args)
 
@@ -163,13 +184,13 @@ func (t *SimpleChaincode) postUploadFile(stub shim.ChaincodeStubInterface, args 
 	return shim.Success(nil)
 }
 
-func (t *SimpleChaincode) getCertificate(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	fmt.Printf("getCertificate=%v\n", args)
+func (t *SimpleChaincode) getDownloadFile(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	fmt.Printf("getDownloadFile=%v\n", args)
 
 	if len(args) != 1 {
 		return shim.Error("Incorrect number of arguments.")
 	}
-	key, err := stub.CreateCompositeKey("certId", []string{args[0]})
+	key, err := stub.CreateCompositeKey("certFile", []string{args[0]})
 	if err != nil {
 		return shim.Error(err.Error())
 	}

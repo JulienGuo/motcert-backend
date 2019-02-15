@@ -213,19 +213,6 @@ func UploadFile(setup *fabricClient.FabricSetup, certId string, file *multipart.
 			return nil, err, http.StatusNotImplemented
 		}
 
-		certFullPath2 := "../files/" + certId + ".pdf"
-		deleteFileOnDisk(certFullPath2)
-		f2, err := os.OpenFile(certFullPath2, os.O_WRONLY|os.O_CREATE, 0666)
-		if err != nil {
-			return nil, err, http.StatusInternalServerError
-		}
-		defer closeFile(f2)
-
-		err = os.Rename(certFullPath, certFullPath2)
-		if err != nil {
-			return nil, err, http.StatusInternalServerError
-		}
-
 	} else {
 		return nil, err, http.StatusNotImplemented
 	}
@@ -240,7 +227,37 @@ func DownloadFile(setup *fabricClient.FabricSetup, param *map[string]string) (st
 	certId := make(map[string]string)
 	certId = *param
 	certIdValue := certId["certId"]
+
+	args := []string{certId["certId"]}
+	response, err := setup.Query("getDownloadFile", args)
+
+	if err != nil {
+		return "", "", nil, err, http.StatusBadRequest
+	}
+
+	if response == "" {
+		return "", "", nil, err, http.StatusNotFound
+	}
+
+	var fileStruct FileStruct
+	err = json.Unmarshal([]byte(response), &fileStruct)
+	if err != nil {
+		return "", "", nil, err, http.StatusNotImplemented
+	}
+
 	fileFullPath := "../files/" + certIdValue + ".pdf"
+
+	deleteFileOnDisk(fileFullPath)
+	f, err := os.Create(fileFullPath)
+	if err != nil {
+		return "", "", nil, err, http.StatusNotImplemented
+	}
+	defer closeFile(f)
+	n, err := f.Write(fileStruct.CertFile)
+	if err != nil {
+		return "", "", nil, err, http.StatusNotImplemented
+	}
+
 	file, err := os.Open(fileFullPath)
 
 	if err != nil {
@@ -277,7 +294,7 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 		return nil, err, http.StatusBadRequest
 	}
 
-	for i, _ := range statuses {
+	for i := range statuses {
 		var param map[string]string
 		param = make(map[string]string)
 		param["certId"] = statuses[i].CertId

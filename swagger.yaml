@@ -39,7 +39,7 @@ paths:
           description: Not found
         '405':
           description: Validation exception
-  '/uploadFile':
+  /uploadFile:
     post:
       tags:
         - certificate
@@ -47,7 +47,7 @@ paths:
         - form-data
       produces:
         - application/json
-      parameters: 
+      parameters:
         - in: body
           name: body
           required: true
@@ -80,7 +80,7 @@ paths:
           description: Invalid input
         '404':
           description: Cert not found
-  /openStatus:
+  /changeStatus:
     post:
       tags:
         - certificate
@@ -304,6 +304,8 @@ definitions:
       isDelete:
         type: boolean
       isOpen:
+        type: boolean
+      isCompleted:
         type: boolean
       isChangedOnChain:
         type: boolean

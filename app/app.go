@@ -64,7 +64,7 @@ func buildRouter() *web.Router {
 	app.Post("certificate/openList", (*motCertAPP).getOpenList)
 	app.Post("certificate/deletedList", (*motCertAPP).getDeletedList)
 	app.Post("certificate/draftList", (*motCertAPP).getDraftList)
-	app.Post("openStatus", (*motCertAPP).postOpenStatus)
+	app.Post("changeStatus", (*motCertAPP).postChangeStatus)
 	app.Post("logout", (*motCertAPP).postLogout)
 
 	return router
@@ -445,8 +445,8 @@ func (s *motCertAPP) getDraftList(rw web.ResponseWriter, req *web.Request) {
 	return
 }
 
-func (s *motCertAPP) postOpenStatus(rw web.ResponseWriter, req *web.Request) {
-	logger.Infof("postOpenStatus start")
+func (s *motCertAPP) postChangeStatus(rw web.ResponseWriter, req *web.Request) {
+	logger.Infof("postChangeStatus start")
 	//先查询再更改
 	encoder := json.NewEncoder(rw)
 	var result Result
@@ -475,7 +475,7 @@ func (s *motCertAPP) postOpenStatus(rw web.ResponseWriter, req *web.Request) {
 	if err := encoder.Encode(result); err != nil {
 		logger.Fatalf("serializing result: %v", err)
 	}
-	logger.Infof("postOpenStatus end")
+	logger.Infof("postChangeStatus end")
 	return
 }
 

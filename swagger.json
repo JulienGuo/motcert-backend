@@ -126,7 +126,7 @@
         }
       }
     },
-    "/openStatus": {
+    "/changeStatus": {
       "post": {
         "tags": [
           "certificate"
@@ -460,6 +460,9 @@
           "type": "boolean"
         },
         "isOpen": {
+          "type": "boolean"
+        },
+        "isCompleted": {
           "type": "boolean"
         },
         "isChangedOnChain": {

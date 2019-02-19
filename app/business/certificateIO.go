@@ -59,6 +59,8 @@ type FileStruct struct {
 
 type Status struct {
 	CertId           string `json:"certId"`
+	IsOpen           bool   `json:"isOpen"`
+	IsCompleted      bool   `json:"isCompleted"`
 	IsDeleted        bool   `json:"isDeleted"`
 	IsChangedOnChain bool   `json:"isChangedOnChain"`
 }
@@ -311,6 +313,8 @@ func ChangeStatus(setup *fabricClient.FabricSetup, body []byte) (interface{}, er
 		certificate := cert.(Certificate)
 
 		certificate.IsDeleted = statuses[i].IsDeleted
+		certificate.IsOpen = statuses[i].IsOpen
+		certificate.IsCompleted = statuses[i].IsCompleted
 
 		nerCert, err := json.Marshal(certificate)
 

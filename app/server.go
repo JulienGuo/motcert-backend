@@ -31,20 +31,20 @@ var (
 		},
 	}
 
-	reloadStartCmd = &cobra.Command{
-		Use:   "reload",
-		Short: "reload the app",
-		Long:  "reload a app that interacts with the network",
+	updateStartCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update the app",
+		Long:  "update a app that interacts with the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setFabricSdk(true, false)
 			return appService(args)
 		},
 	}
 
-	updateStartCmd = &cobra.Command{
-		Use:   "update",
-		Short: "update the app",
-		Long:  "update a app that interacts with the network",
+	upgradeStartCmd = &cobra.Command{
+		Use:   "upgrade",
+		Short: "upgrade the app",
+		Long:  "upgrade a app that interacts with the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setFabricSdk(true, true)
 			return appService(args)
@@ -92,8 +92,8 @@ func main() {
 	mainFlags.BoolVarP(&versionFlag, "version", "v", false, "Display current version")
 	mainCmd.AddCommand(VersionCmd())
 	mainCmd.AddCommand(appStartCmd)
-	mainCmd.AddCommand(reloadStartCmd)
 	mainCmd.AddCommand(updateStartCmd)
+	mainCmd.AddCommand(upgradeStartCmd)
 	mainCmd.AddCommand(testCmd())
 	runtime.GOMAXPROCS(viper.GetInt("app.gomaxprocs"))
 
@@ -106,7 +106,7 @@ func main() {
 	logger.Info("Exiting.....")
 }
 
-func setFabricSdk(hasChannel bool, hasData bool) {
+func setFabricSdk(hasChannel bool, upgrade bool) {
 	// Definition of the Fabric SDK properties
 	FabricSetupEntity = &fabricClient.FabricSetup{
 		// Network parameters
@@ -122,6 +122,7 @@ func setFabricSdk(hasChannel bool, hasData bool) {
 		ChaincodePath:   "gitlab.chainnova.com/motcert-backend/app/chaincode/",
 		OrgAdmin:        "Admin",
 		OrgName:         "org1",
+		OrgID:           "org1",
 		ConfigFile:      "../config.yaml",
 
 		// User parameters
@@ -129,14 +130,14 @@ func setFabricSdk(hasChannel bool, hasData bool) {
 	}
 
 	// Initialization of the Fabric SDK from the previously set properties
-	err := FabricSetupEntity.Initialize(hasChannel, hasData)
+	err := FabricSetupEntity.Initialize(hasChannel)
 	if err != nil {
 		logger.Errorf("Unable to initialize the Fabric SDK: %v\n", err)
 		return
 	}
 
 	//Install and instantiate the chaincode
-	err = FabricSetupEntity.InstallAndInstantiateCC(hasChannel)
+	err = FabricSetupEntity.InstallAndInstantiateCC(hasChannel, upgrade)
 	if err != nil {
 		logger.Errorf("Unable to install and instantiate the chaincode: %v\n", err)
 		return

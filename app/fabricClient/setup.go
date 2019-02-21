@@ -6,13 +6,17 @@ import (
 	mspclient "github.com/hyperledger/fabric-sdk-go/pkg/client/msp"
 	"github.com/hyperledger/fabric-sdk-go/pkg/client/resmgmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/errors/retry"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/core"
+	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/fab"
 	"github.com/hyperledger/fabric-sdk-go/pkg/common/providers/msp"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
+	"github.com/hyperledger/fabric-sdk-go/pkg/core/config/lookup"
 	packager "github.com/hyperledger/fabric-sdk-go/pkg/fab/ccpackager/gopackager"
 	"github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
 	"github.com/hyperledger/fabric-sdk-go/third_party/github.com/hyperledger/fabric/common/cauthdsl"
 	"github.com/op/go-logging"
 	"github.com/pkg/errors"
+	"strings"
 )
 
 var logger = logging.MustGetLogger("Motcert.FabricClient")
@@ -38,7 +42,7 @@ type FabricSetup struct {
 }
 
 // Initialize reads the configuration file and sets up the client, chain and event hub
-func (setup *FabricSetup) Initialize(hasChannel bool, hasData bool) error {
+func (setup *FabricSetup) Initialize(hasChannel bool) error {
 
 	// Add parameters for the initialization
 	if setup.initialized {
@@ -79,16 +83,12 @@ func (setup *FabricSetup) Initialize(hasChannel bool, hasData bool) error {
 		if err != nil {
 			return err
 		}
-	}
-
-	if !hasData {
 		// Make admin user join the previously created channel
 		if err = setup.admin.JoinChannel(setup.ChannelID, resmgmt.WithRetry(retry.DefaultResMgmtOpts), resmgmt.WithOrdererEndpoint(setup.OrdererID)); err != nil {
 			return errors.WithMessage(err, "failed to make admin join channel")
 		}
 		logger.Info("Channel joined")
 	}
-
 	logger.Info("Initialization Successful")
 	setup.initialized = true
 	return nil
@@ -104,7 +104,7 @@ func creatChannel(setup *FabricSetup, adminIdentity msp.SigningIdentity) error {
 	return nil
 }
 
-func (setup *FabricSetup) InstallAndInstantiateCC(hasChannel bool) error {
+func (setup *FabricSetup) InstallAndInstantiateCC(hasChannel, upgrade bool) error {
 
 	// Create the chaincode package that will be sent to the peers
 	ccPkg, err := packager.NewCCPackage(setup.ChaincodePath, setup.ChaincodeGoPath)
@@ -152,4 +152,59 @@ func (setup *FabricSetup) InstallAndInstantiateCC(hasChannel bool) error {
 
 func (setup *FabricSetup) CloseSDK() {
 	setup.sdk.Close()
+}
+
+// OrgTargetPeers determines peer endpoints for orgs
+func OrgTargetPeers(orgs []string, configBackend ...core.ConfigBackend) ([]string, error) {
+	networkConfig := fab.NetworkConfig{}
+	err := lookup.New(configBackend...).UnmarshalKey("organizations", &networkConfig.Organizations)
+	if err != nil {
+		return nil, errors.WithMessage(err, "failed to get organizations from config ")
+	}
+
+	var peers []string
+	for _, org := range orgs {
+		orgConfig, ok := networkConfig.Organizations[strings.ToLower(org)]
+		if !ok {
+			continue
+		}
+		peers = append(peers, orgConfig.Peers...)
+	}
+	return peers, nil
+}
+
+// HasPeerJoinedChannel checks whether the peer has already joined the channel.
+// It returns true if it has, false otherwise, or an error
+func HasPeerJoinedChannel(client *resmgmt.Client, target string, channel string) (bool, error) {
+	foundChannel := false
+	response, err := client.QueryChannels(resmgmt.WithTargetEndpoints(target), resmgmt.WithRetry(retry.DefaultResMgmtOpts))
+	if err != nil {
+		return false, errors.WithMessage(err, "failed to query channel for peer")
+	}
+	for _, responseChannel := range response.Channels {
+		if responseChannel.ChannelId == channel {
+			foundChannel = true
+		}
+	}
+
+	return foundChannel, nil
+}
+
+// FilterTargetsJoinedChannel filters targets to those that have joined the named channel.
+func FilterTargetsJoinedChannel(rc *resmgmt.Client, channelID string, targets []string) ([]string, error) {
+	var joinedTargets []string
+
+	for _, target := range targets {
+		// Check if primary peer has joined channel
+		alreadyJoined, err := HasPeerJoinedChannel(rc, target, channelID)
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed while checking if primary peer has already joined channel")
+		}
+		if alreadyJoined {
+			logger.Error("alreadyJoined" + target)
+			joinedTargets = append(joinedTargets, target)
+		}
+		logger.Error(target)
+	}
+	return joinedTargets, nil
 }

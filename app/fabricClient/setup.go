@@ -113,23 +113,62 @@ func (setup *FabricSetup) InstallAndInstantiateCC(hasChannel, upgrade bool) erro
 	}
 	logger.Info("ccPkg created")
 
-	// Install example cc to org peers
-	installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "0", Package: ccPkg}
-	_, err = setup.admin.InstallCC(installCCReq, resmgmt.WithRetry(retry.DefaultResMgmtOpts))
-	if err != nil {
-		return errors.WithMessage(err, "failed to install chaincode")
-	}
-	logger.Info("Chaincode installed")
-
 	if !hasChannel {
 		// Set up chaincode policy
 		ccPolicy := cauthdsl.SignedByAnyMember([]string{"org1.cert.mot.gov.cn"})
-
-		resp, err := setup.admin.InstantiateCC(setup.ChannelID, resmgmt.InstantiateCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodeGoPath, Version: "0", Args: [][]byte{[]byte("init")}, Policy: ccPolicy})
+		// Install example cc to org peers
+		installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "1.0", Package: ccPkg}
+		_, err = setup.admin.InstallCC(installCCReq, resmgmt.WithRetry(retry.DefaultResMgmtOpts))
+		if err != nil {
+			return errors.WithMessage(err, "failed to install chaincode")
+		}
+		logger.Info("Chaincode installed")
+		resp, err := setup.admin.InstantiateCC(setup.ChannelID, resmgmt.InstantiateCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "1.0", Args: [][]byte{[]byte("init")}, Policy: ccPolicy})
 		if err != nil || resp.TransactionID == "" {
 			return errors.WithMessage(err, "failed to instantiate the chaincode")
 		}
 		logger.Info("Chaincode instantiated")
+	} else if upgrade {
+		// Set up chaincode policy
+		ccPolicy := cauthdsl.SignedByAnyMember([]string{"org1.cert.mot.gov.cn"})
+		// Install example cc to org peers
+		installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "1.4", Package: ccPkg}
+		_, err = setup.admin.InstallCC(installCCReq, resmgmt.WithRetry(retry.DefaultResMgmtOpts))
+		if err != nil {
+			return errors.WithMessage(err, "failed to install chaincode")
+		}
+		logger.Info("Chaincode installed")
+
+		req := resmgmt.UpgradeCCRequest{Name: setup.ChainCodeID, Version: "1.4", Path: setup.ChaincodePath, Args: [][]byte{[]byte("init")}, Policy: ccPolicy}
+
+		var cfgBackends []core.ConfigBackend
+		configBackend, err := setup.sdk.Config()
+		if err != nil {
+			//For some tests SDK may not have backend set, try with config file if backend is missing
+			cfgBackends, err = config.FromFile(setup.ConfigFile)()
+			if err != nil {
+				return errors.Wrapf(err, "failed to get config backend from config: %s", err)
+			}
+		} else {
+			cfgBackends = append(cfgBackends, configBackend)
+		}
+
+		targets, err := OrgTargetPeers([]string{setup.OrgID}, cfgBackends...)
+		joinedTargets, err := FilterTargetsJoinedChannel(setup.admin, setup.ChannelID, targets)
+		if err != nil {
+			return errors.WithMessage(err, "checking for joined targets failed")
+		}
+
+		resp1, err := setup.admin.UpgradeCC(setup.ChannelID, req, resmgmt.WithTargetEndpoints(joinedTargets...))
+		if err != nil {
+			logger.Errorf("failed to upgrade chaincode: s%\n", err)
+		}
+
+		if resp1.TransactionID == "" {
+			logger.Error("Failed to upgrade chaincode")
+		}
+
+		logger.Info("Chaincode upgraded")
 	}
 	// Channel client is used to query and execute transactions
 	clientContext := setup.sdk.ChannelContext(setup.ChannelID, fabsdk.WithUser(setup.UserName))

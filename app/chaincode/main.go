@@ -62,7 +62,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 // invoke chaincode
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
-	fmt.Println("###########  Invoke ###########")
+	fmt.Println("###########  Invoke 1.1  ###########")
 	function, args := stub.GetFunctionAndParameters()
 
 	switch function {

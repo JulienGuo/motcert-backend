@@ -107,11 +107,11 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	response, err := setup.Query("getDownloadFile", args1)
 
 	if err != nil {
-		return nil, err, http.StatusBadRequest
+		certificate.HasUpload = false
 	}
 
 	if response == "" {
-		return nil, err, http.StatusNotFound
+		certificate.HasUpload = false
 	}
 
 	var fileStruct *FileStruct

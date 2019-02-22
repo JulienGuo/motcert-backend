@@ -114,7 +114,9 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 		return nil, err, http.StatusBadRequest
 	}
 
-	args2 := []string{string(body)}
+	nerCert, err := json.Marshal(certificate)
+
+	args2 := []string{string(nerCert)}
 	eventID := "postCertificateEvent" + certificate.CertId
 	data, err := setup.Execute(eventID, "postCertificate", args2)
 	if err != nil {

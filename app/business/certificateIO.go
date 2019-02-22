@@ -102,10 +102,33 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	}
 
 	logger.Infof("postCertificate: '%s'.\n", certificate)
-	args := []string{string(body)}
 
+	args1 := []string{certificate.CertId}
+	response, err := setup.Query("getDownloadFile", args1)
+
+	if err != nil {
+		return nil, err, http.StatusBadRequest
+	}
+
+	if response == "" {
+		return nil, err, http.StatusNotFound
+	}
+
+	var fileStruct *FileStruct
+	err = json.Unmarshal([]byte(response), fileStruct)
+	if err == nil && fileStruct != nil {
+		certificate.HasUpload = true
+	} else {
+		certificate.HasUpload = false
+	}
+
+	if certificate.IsOpen && !certificate.HasUpload {
+		return nil, err, http.StatusBadRequest
+	}
+
+	args2 := []string{string(body)}
 	eventID := "postCertificateEvent" + certificate.CertId
-	data, err := setup.Execute(eventID, "postCertificate", args)
+	data, err := setup.Execute(eventID, "postCertificate", args2)
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
@@ -199,22 +222,17 @@ func UploadFile(setup *fabricClient.FabricSetup, certId string, file *multipart.
 		param = make(map[string]string)
 		param["certId"] = certId
 		cert, err, _ := CertificateOut(setup, &param)
-		if err != nil {
-			return nil, err, http.StatusNotImplemented
-		}
+		if err == nil && cert != nil {
+			certificate := cert.(Certificate)
 
-		if cert == nil {
-			return nil, err, http.StatusNotImplemented
-		}
-		certificate := cert.(Certificate)
+			certificate.HasUpload = true
 
-		certificate.HasUpload = true
+			nerCert, err := json.Marshal(certificate)
 
-		nerCert, err := json.Marshal(certificate)
-
-		_, err, _ = CertificateIn(setup, nerCert)
-		if err != nil {
-			return nil, err, http.StatusNotImplemented
+			_, err, _ = CertificateIn(setup, nerCert)
+			if err != nil {
+				return nil, err, http.StatusNotImplemented
+			}
 		}
 
 	} else {

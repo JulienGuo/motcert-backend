@@ -106,20 +106,19 @@ func CertificateIn(setup *fabricClient.FabricSetup, body []byte) (interface{}, e
 	args1 := []string{certificate.CertId}
 	response, err := setup.Query("getDownloadFile", args1)
 
-	if err != nil {
+	if err != nil || response == "" {
 		certificate.HasUpload = false
-	}
-
-	if response == "" {
-		certificate.HasUpload = false
-	}
-
-	var fileStruct *FileStruct
-	err = json.Unmarshal([]byte(response), fileStruct)
-	if err == nil && fileStruct != nil {
-		certificate.HasUpload = true
 	} else {
-		certificate.HasUpload = false
+		var fileStruct FileStruct
+		err = json.Unmarshal([]byte(response), &fileStruct)
+		if err == nil && &fileStruct != nil {
+			logger.Error("fileStruct.CertId ==", fileStruct.CertId)
+			certificate.HasUpload = true
+			logger.Error("certificate.HasUpload = true")
+		} else {
+			logger.Error("certificate.HasUpload = false")
+			certificate.HasUpload = false
+		}
 	}
 
 	if certificate.IsOpen && !certificate.HasUpload {

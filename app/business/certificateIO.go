@@ -19,17 +19,6 @@ import (
 
 var logger = logging.MustGetLogger("Motcert.business")
 
-var openListBookmarks []string
-var deletedListBookmarks []string
-var draftListBookmarks []string
-
-func init() {
-	//可以加定时任务优化
-	openListBookmarks = append(openListBookmarks, "")
-	deletedListBookmarks = append(deletedListBookmarks, "")
-	draftListBookmarks = append(draftListBookmarks, "")
-}
-
 type Certificate struct {
 	CertId              string `protobuf:"bytes,1,req,name=certId" json:"certId"`                            //证书编号
 	CertType            string `protobuf:"bytes,2,req,name=certType" json:"certType"`                        //证书类型
@@ -87,7 +76,7 @@ type ListInternal struct {
 	Certs     []Certificate
 }
 type List struct {
-	PageCount int           `json:"pageCount"`
+	Count     int           `json:"count"`
 	PageIndex int           `json:"pageIndex"`
 	Certs     []Certificate `json:"certs"`
 }
@@ -363,7 +352,7 @@ func OpenListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin boo
 	queryString = editQueryString(queryString, &queryConditions)
 
 	logger.Info("-----------------------------OpenListRichQuery END---------------------")
-	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &openListBookmarks)
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString)
 }
 
 func editQueryString(queryString string, queryConditions *QueryConditions) string {
@@ -417,7 +406,7 @@ func DeletedListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin 
 	queryString = editQueryString(queryString, &queryConditions)
 
 	logger.Info("-----------------------------DeletedListRichQuery END---------------------")
-	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &deletedListBookmarks)
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString)
 }
 
 func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bool) (interface{}, error, int) {
@@ -434,10 +423,10 @@ func DraftListRichQuery(setup *fabricClient.FabricSetup, body []byte, isLogin bo
 	queryString = editQueryString(queryString, &queryConditions)
 
 	logger.Info("-----------------------------DraftListRichQuery END---------------------")
-	return CertificateRichQuery(setup, queryConditions, isLogin, queryString, &draftListBookmarks)
+	return CertificateRichQuery(setup, queryConditions, isLogin, queryString)
 }
 
-func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions QueryConditions, isLogin bool, queryString string, bookmarks *[]string) (interface{}, error, int) {
+func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions QueryConditions, isLogin bool, queryString string) (interface{}, error, int) {
 
 	logger.Info("-----------------------------CertificateRichQuery BEGIN---------------------")
 	logger.Error(queryString + "|||||||||||||||")
@@ -445,6 +434,9 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions Query
 	if queryConditions.IsOpen == false && !isLogin {
 		return nil, errors.New("Should login"), http.StatusUnauthorized
 	} else {
+
+		var bookmarks []string
+
 		pageSize := queryConditions.PageSize
 		pageIndex := queryConditions.PageIndex
 
@@ -452,57 +444,56 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions Query
 			return nil, errors.New("PageIndex value should >=1"), http.StatusBadRequest
 		}
 
-		var bookmark string
-		if pageIndex == 1 {
-			bookmark = ""
-		} else if pageIndex > 1 {
-			//当前请求的页数对应没有存储书签，需要依次请求1到pageIndex的书签
-			//循环遍历书签列表，找到最大位的有值书签
-			for index := 1; index < pageIndex; index++ {
-				if index < len(*bookmarks) {
-					if (*bookmarks)[index] == "" || &(*bookmarks)[index] == nil {
-						bookmark = (*bookmarks)[index-1]
-						//调用获取方法，循环更新bookmark
-						newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
-						if err != nil {
-							return err.Error(), err, code
-						}
-						(*bookmarks)[index] = newlist.Bookmark
-					} else {
-						continue
-					}
-				} else {
-					bookmark = (*bookmarks)[index-1]
-					//调用获取方法，循环更新bookmark
-					newlist, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
-					if err != nil {
-						return err.Error(), err, code
-					}
-					(*bookmarks)[index] = newlist.Bookmark
-				}
+		bookmark := ""
+		bookmarks = append(bookmarks, bookmark)
+		newList := &ListInternal{Bookmark: bookmark}
+		logger.Error("newList", newList)
+		for bookmark = ""; true; {
+
+			logger.Error("bookmark", bookmark)
+			//调用获取方法，循环更新bookmark
+			newList, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
+			if err != nil {
+				return err.Error(), err, code
+			}
+			logger.Error("newList", newList)
+			if bookmarks[len(bookmarks)-1] != newList.Bookmark && newList.PageCount != 0 {
+				bookmarks = append(bookmarks, newList.Bookmark)
+				bookmark = newList.Bookmark
+			} else {
+				break;
 			}
 		}
-		bookmark = (*bookmarks)[pageIndex-1]
-		//调用获取方法，循环更新bookmark
+
+		if len(bookmarks) < pageIndex {
+			pageIndex = len(bookmarks)
+		}
+		bookmark = bookmarks[pageIndex-1]
+
 		listInter, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
 		if err != nil {
 			return err.Error(), err, code
 		}
 
-		if len(*bookmarks) > pageIndex {
-			if listInter.Bookmark != (*bookmarks)[pageIndex] {
-				(*bookmarks)[pageIndex] = listInter.Bookmark
-				//书签过时，后面的全部置空
-				for i := pageIndex + 1; i < len(*bookmarks); i++ {
-					(*bookmarks)[i] = ""
-				}
-			}
-		} else if len(*bookmarks) == pageIndex {
-			*bookmarks = append(*bookmarks, listInter.Bookmark)
+		lastInter, err, code := getNewBookmarks(setup, queryString, pageSize, bookmarks[len(bookmarks)-1])
+		if err != nil {
+			return err.Error(), err, code
 		}
 
+		lastPageCount := lastInter.PageCount
+
 		var list List
-		list.PageCount = listInter.PageCount
+		if lastPageCount == 0 && len(bookmarks) > 1 {
+			lastInter, err, code := getNewBookmarks(setup, queryString, pageSize, bookmarks[len(bookmarks)-2])
+			if err != nil {
+				return err.Error(), err, code
+			}
+
+			lastPageCount = lastInter.PageCount
+			list.Count = pageSize*(len(bookmarks)-2) + lastPageCount
+		} else {
+			list.Count = pageSize*(len(bookmarks)-1) + lastPageCount
+		}
 		list.PageIndex = pageIndex
 		list.Certs = listInter.Certs
 		return list, nil, http.StatusOK

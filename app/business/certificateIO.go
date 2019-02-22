@@ -144,6 +144,7 @@ func CertificateOut(setup *fabricClient.FabricSetup, param *map[string]string) (
 
 	var certificate Certificate
 	err = json.Unmarshal([]byte(response), &certificate)
+	certificate.UpdateDate = certificate.UpdateDate[0:10]
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
@@ -448,17 +449,14 @@ func CertificateRichQuery(setup *fabricClient.FabricSetup, queryConditions Query
 
 		bookmark := ""
 		bookmarks = append(bookmarks, bookmark)
-		newList := &ListInternal{Bookmark: bookmark}
-		logger.Error("newList", newList)
+
 		for bookmark = ""; true; {
 
-			logger.Error("bookmark", bookmark)
 			//调用获取方法，循环更新bookmark
 			newList, err, code := getNewBookmarks(setup, queryString, pageSize, bookmark)
 			if err != nil {
 				return err.Error(), err, code
 			}
-			logger.Error("newList", newList)
 			if bookmarks[len(bookmarks)-1] != newList.Bookmark && newList.PageCount != 0 {
 				bookmarks = append(bookmarks, newList.Bookmark)
 				bookmark = newList.Bookmark
@@ -519,6 +517,11 @@ func getNewBookmarks(setup *fabricClient.FabricSetup, queryString string, pageSi
 	if err != nil {
 		return nil, err, http.StatusNotImplemented
 	}
+
+	for i, cert := range listInter.Certs {
+		listInter.Certs[i].UpdateDate = cert.UpdateDate[0:10]
+	}
+
 	return &listInter, nil, http.StatusOK
 }
 

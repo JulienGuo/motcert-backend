@@ -103,7 +103,7 @@ func (t *SimpleChaincode) postCertificate(stub shim.ChaincodeStubInterface, args
 		return shim.Error(err.Error())
 	}
 
-	format := "2006-01-02"
+	format := "2006-01-02 15:04:05"
 	now := time.Now()
 
 	local, err := time.LoadLocation("PRC")

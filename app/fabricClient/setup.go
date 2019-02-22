@@ -132,14 +132,14 @@ func (setup *FabricSetup) InstallAndInstantiateCC(hasChannel, upgrade bool) erro
 		// Set up chaincode policy
 		ccPolicy := cauthdsl.SignedByAnyMember([]string{"org1.cert.mot.gov.cn"})
 		// Install example cc to org peers
-		installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "1.4", Package: ccPkg}
+		installCCReq := resmgmt.InstallCCRequest{Name: setup.ChainCodeID, Path: setup.ChaincodePath, Version: "1.5", Package: ccPkg}
 		_, err = setup.admin.InstallCC(installCCReq, resmgmt.WithRetry(retry.DefaultResMgmtOpts))
 		if err != nil {
 			return errors.WithMessage(err, "failed to install chaincode")
 		}
 		logger.Info("Chaincode installed")
 
-		req := resmgmt.UpgradeCCRequest{Name: setup.ChainCodeID, Version: "1.4", Path: setup.ChaincodePath, Args: [][]byte{[]byte("init")}, Policy: ccPolicy}
+		req := resmgmt.UpgradeCCRequest{Name: setup.ChainCodeID, Version: "1.5", Path: setup.ChaincodePath, Args: [][]byte{[]byte("init")}, Policy: ccPolicy}
 
 		var cfgBackends []core.ConfigBackend
 		configBackend, err := setup.sdk.Config()

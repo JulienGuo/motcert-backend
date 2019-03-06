@@ -18,7 +18,7 @@ client:
 
   # Root of the MSP directories with keys and certs.
   cryptoconfig:
-    path: ${GOPATH}/src/gitlab.chainnova.com/motcert-backend/fixtures/crypto-config
+    path: ../fixtures/crypto-config
 
   # Some SDKs support pluggable KV stores, the properties under "credentialStore"
   # are implementation specific
@@ -152,7 +152,7 @@ orderers:
 
     tlsCACerts:
       # Certificate location absolute path
-      path: ${GOPATH}/src/gitlab.chainnova.com/motcert-backend/fixtures/crypto-config/ordererOrganizations/cert.mot.gov.cn/tlsca/tlsca.cert.mot.gov.cn-cert.pem
+      path: ../fixtures/crypto-config/ordererOrganizations/cert.mot.gov.cn/tlsca/tlsca.cert.mot.gov.cn-cert.pem
 #
 # List of peers to send various requests to, including endorsement, query
 # and event listener registration.
@@ -178,7 +178,7 @@ peers:
 
     tlsCACerts:
       # Certificate location absolute path
-      path: ${GOPATH}/src/gitlab.chainnova.com/motcert-backend/fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/tlsca/tlsca.org1.cert.mot.gov.cn-cert.pem
+      path: ../fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/tlsca/tlsca.org1.cert.mot.gov.cn-cert.pem
 
   peer1.org1.cert.mot.gov.cn:
     # this URL is used to send endorsement and query requests
@@ -200,7 +200,7 @@ peers:
 
     tlsCACerts:
       # Certificate location absolute path
-      path: ${GOPATH}/src/gitlab.chainnova.com/motcert-backend/fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/tlsca/tlsca.org1.cert.mot.gov.cn-cert.pem
+      path: ../fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/tlsca/tlsca.org1.cert.mot.gov.cn-cert.pem
 
 #
 # Fabric-CA is a special kind of Certificate Authority provided by Hyperledger Fabric which allows
@@ -221,7 +221,7 @@ certificateAuthorities:
     caName: ca.org1.cert.mot.gov.cn
     tlsCACerts:
       # Certificate location absolute path
-      path: ${GOPATH}/src/gitlab.chainnova.com/motcert-backend/fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/ca/ca.org1.cert.mot.gov.cn-cert.pem
+      path: ../fixtures/crypto-config/peerOrganizations/org1.cert.mot.gov.cn/ca/ca.org1.cert.mot.gov.cn-cert.pem
 
 entityMatchers:
   peer:

@@ -4,8 +4,8 @@ image: golang:latest
 variables:
   # Please edit to your GitLab project
   REPO_NAME: gitlab.chainnova.com/if/motcert-backend
-  GOPATH:/opt/gopath
-  CI_PROJECT_DIR:~
+  GOPATH: /opt/gopath
+  CI_PROJECT_DIR: ~
 
 # The problem is that to be able to use go get, one needs to put
 # the repository in the $GOPATH. So for example if your gitlab domain

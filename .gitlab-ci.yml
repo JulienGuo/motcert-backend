@@ -28,7 +28,7 @@ compile:
     stage: build
     script:
       - rm app*
-      - go build main.go
+      - go build server.go
       - cp app app.file
     artifacts:
       paths:

@@ -3,7 +3,7 @@ image: golang:latest
 
 variables:
   # Please edit to your GitLab project
-  REPO_NAME: "gitlab.chainnova.com/if/motcert-backend"
+  REPO_NAME: "gitlab.chainnova.com/BaseLayer/motcert-backend"
   GOPATH: "/opt/gopath"
   CI_PROJECT_DIR: "~"
 
@@ -25,6 +25,7 @@ stages:
 format:
     stage: test
     script:
+      - cd motcert-backend/app
       - go fmt $(go list ./... | grep -v /vendor/)
       - go vet $(go list ./... | grep -v /vendor/)
       - go test -race $(go list ./... | grep -v /vendor/)

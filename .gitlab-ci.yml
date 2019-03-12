@@ -14,10 +14,9 @@ variables:
 # repository in /go/src/gitlab.com/namespace/project
 # Thus, making a symbolic link corrects this.
 before_script:
-  - sudo su
-  - mkdir -p $GOPATH/src/gitlab.chainnova.com/motcert-backend
-  - ln -svf $CI_PROJECT_DIR $GOPATH/src/gitlab.chainnova.com/motcert-backend
-  - cd $GOPATH/src/gitlab.chainnova.com/motcert-backend/app
+  - mkdir -p $GOPATH/src/gitlab.chainnova.com
+  - ln -svf $CI_PROJECT_DIR $GOPATH/src/gitlab.chainnova.com
+  - cd $GOPATH/src/gitlab.chainnova.com
 
 stages:
     - test

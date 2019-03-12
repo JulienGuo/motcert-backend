@@ -25,7 +25,7 @@ stages:
 format:
     stage: test
     script:
-      - git clone ssh://git@gitlab.chainnova.com:7998/BaseLayer/motcert-backend.git
+      - git clone https://ZkxN9i2FvCmfyNp-XgPy:${CI_JOB_TOKEN}@gitlab.chainnova.com:7998/BaseLayer/motcert-backend.git
       - ls -la
       - cd motcert-backend/app
       - go fmt $(go list ./... | grep -v /vendor/)

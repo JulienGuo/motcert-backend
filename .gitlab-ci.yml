@@ -37,7 +37,7 @@ compile:
     stage: build
     script:
       - rm app*
-      - go build  -o ./app
+      - go build .
       - cp app app.file
     artifacts:
       paths:

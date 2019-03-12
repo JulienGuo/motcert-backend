@@ -21,19 +21,29 @@ before_script:
   - cd $GOPATH/src/gitlab.chainnova.com/motcert-backend/app
 
 stages:
+    - test
     - build
     - run
     
+format:
+    stage: test
+    script:
+      - go fmt $(go list ./... | grep -v /vendor/)
+      - go vet $(go list ./... | grep -v /vendor/)
+      - go test -race $(go list ./... | grep -v /vendor/)
+      
 compile:
     stage: build
     script:
-      - rm app*
+      - rm app app.file
       - go build server.go
       - cp app app.file
     artifacts:
       paths:
         - ./app
+        
 run:
     stage: run
     script:
       - ./app update &
+      

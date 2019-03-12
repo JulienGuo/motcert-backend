@@ -29,7 +29,7 @@ type Result struct {
 }
 
 // start app Service
-func appService(args []string) error {
+func appService() error {
 	// Create and register the REST service if configured
 	startService()
 	logger.Infof("Starting app service...")

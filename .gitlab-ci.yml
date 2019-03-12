@@ -36,7 +36,9 @@ format:
 compile:
     stage: build
     script:
-      - go build -race -ldflags "-extldflags '-static'" -o ./
+      - rm app*
+      - go build -race -ldflags "-extldflags '-static'" -o ./app
+      - cp app app.file
     artifacts:
       paths:
         - ./app

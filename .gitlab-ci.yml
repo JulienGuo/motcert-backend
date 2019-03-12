@@ -21,7 +21,6 @@ before_script:
   - cd $GOPATH/src/gitlab.chainnova.com/motcert-backend/app
 
 stages:
-    - test
     - build
     - run
 

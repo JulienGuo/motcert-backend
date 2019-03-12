@@ -27,7 +27,7 @@ var (
 		Long:  `Starts a app that interacts with the network.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setFabricSdk(false, false)
-			return startService()
+			return appService()
 		},
 	}
 
@@ -37,7 +37,7 @@ var (
 		Long:  "update a app that interacts with the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setFabricSdk(true, false)
-			return startService()
+			return appService()
 		},
 	}
 
@@ -47,7 +47,7 @@ var (
 		Long:  "upgrade a app that interacts with the network",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setFabricSdk(true, true)
-			return startService()
+			return appService()
 		},
 	}
 )

@@ -5,7 +5,6 @@ variables:
   # Please edit to your GitLab project
   REPO_NAME: "gitlab.chainnova.com:7998/BaseLayer/motcert-backend"
   GOPATH: "/opt/gopath"
-  CI_PROJECT_DIR: "~"
 
 # The problem is that to be able to use go get, one needs to put
 # the repository in the $GOPATH. So for example if your gitlab domain
@@ -17,6 +16,7 @@ before_script:
   - mkdir -p $GOPATH/src/gitlab.chainnova.com
   - pwd
   - ls
+  - echo $CI_PROJECT_DIR
   - ln -svf $CI_PROJECT_DIR $GOPATH/src/gitlab.chainnova.com
   - cd $GOPATH/src/gitlab.chainnova.com
 

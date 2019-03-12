@@ -15,8 +15,6 @@ variables:
 # Thus, making a symbolic link corrects this.
 before_script:
   - mkdir -p $GOPATH/src/gitlab.chainnova.com
-  - cd $CI_PROJECT_DIR
-  - echo $CI_PROJECT_DIR
   - ln -svf $CI_PROJECT_DIR $GOPATH/src/gitlab.chainnova.com
   - cd $GOPATH/src/gitlab.chainnova.com
 
@@ -27,7 +25,7 @@ stages:
 format:
     stage: test
     script:
-      - cd $CI_PROJECT_DIR
+      - git clone https://gitlab.chainnova.com/BaseLayer/motcert-backend.git
       - ls -la
       - cd motcert-backend/app
       - go fmt $(go list ./... | grep -v /vendor/)

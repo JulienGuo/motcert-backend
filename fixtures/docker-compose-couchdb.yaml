@@ -1,0 +1,29 @@
+version: '2'
+
+networks:
+  default:
+
+services:
+
+  couchdb0:
+    container_name: couchdb0
+    image: hyperledger/fabric-couchdb:amd64-0.4.15
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=X9JXSvdHNs
+    # Comment/Uncomment the port mapping if you want to hide/expose the CouchDB service,
+    # for example map it to utilize Fauxton User Interface in dev environments.
+    ports:
+      - "7184:5984"
+
+  couchdb1:
+    container_name: couchdb1
+    image: hyperledger/fabric-couchdb:amd64-0.4.15
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=B1Dl6Xhb3
+    # Comment/Uncomment the port mapping if you want to hide/expose the CouchDB service,
+    # for example map it to utilize Fauxton User Interface in dev environments.
+    ports:
+      - "7185:5984"
+
